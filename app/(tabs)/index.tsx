@@ -1,18 +1,17 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { Card } from '@/components/ui/card';
 import type { AttentionItem } from '@/src/domain/shared';
 import type { Deadline } from '@/src/domain/deadlines/schemas';
 import { loadAttentionOverview } from '@/src/services/attentionService';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { AttentionRow } from '@/src/components/AttentionRow';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
-import { useTheme } from '@/src/ui/theme';
 
 export default function AttentionScreen() {
   const db = useSQLiteContext();
-  const theme = useTheme();
   const { revision } = useDataRefresh();
   const [items, setItems] = useState<AttentionItem[]>([]);
   const [completedDeadlines, setCompletedDeadlines] = useState<Deadline[]>([]);
@@ -44,10 +43,18 @@ export default function AttentionScreen() {
 
   return (
     <Screen>
-      <View style={styles.heading}>
-        <View style={styles.headingCopy}>
-          <Text style={[styles.eyebrow, { color: theme.primary }]}>YOUR FOCUS</Text>
-          <Text style={[styles.title, { color: theme.text }]}>Needs attention</Text>
+      <View className="flex-row items-center justify-between gap-4 py-1">
+        <View className="flex-1 gap-1">
+          <View className="flex-row items-center gap-2">
+            <View className="h-2 w-2 rounded-full bg-primary" />
+            <Text className="text-xs font-extrabold uppercase tracking-[1.8px] text-primary">Your focus</Text>
+          </View>
+          <Text className="text-[32px] font-extrabold leading-10 tracking-[-1px] text-foreground">
+            Needs attention
+          </Text>
+          <Text className="text-sm text-muted-foreground">
+            {items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'} asking for your focus` : 'A calm view of what matters now'}
+          </Text>
         </View>
         <Button onPress={() => router.push('/deadline/new')}>+ Deadline</Button>
       </View>
@@ -61,40 +68,34 @@ export default function AttentionScreen() {
           action={<Button onPress={() => router.push('/deadline/new')}>Add a deadline</Button>}
         />
       ) : (
-        <View style={styles.list}>
+        <View className="gap-3">
           {items.map((item) => <AttentionRow key={item.id} item={item} onPress={() => openItem(item)} />)}
         </View>
       )}
       {!loading && !error && completedDeadlines.length > 0 ? (
         <>
           <SectionTitle>Recently completed</SectionTitle>
-          {completedDeadlines.map((deadline) => (
-            <Pressable
-              key={deadline.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${deadline.title}. Completed`}
-              onPress={() => router.push(`/deadline/${deadline.id}` as never)}
-              style={[styles.completedRow, { borderBottomColor: theme.border }]}
-            >
-              <Text style={[styles.completedMark, { color: theme.green }]}>✓</Text>
-              <Text style={[styles.completedTitle, { color: theme.textMuted }]}>{deadline.title}</Text>
-              <Text style={[styles.completedChevron, { color: theme.textMuted }]}>›</Text>
-            </Pressable>
-          ))}
+          <Card className="overflow-hidden rounded-3xl border-border bg-card p-0 shadow-sm">
+            {completedDeadlines.map((deadline, index) => (
+              <Pressable
+                key={deadline.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${deadline.title}. Completed`}
+                onPress={() => router.push(`/deadline/${deadline.id}` as never)}
+                className={`min-h-14 flex-row items-center gap-3 px-4 active:bg-muted ${
+                  index > 0 ? 'border-t border-border' : ''
+                }`}
+              >
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-urgency-green/10">
+                  <Text className="text-base font-extrabold text-urgency-green">✓</Text>
+                </View>
+                <Text className="flex-1 text-base text-muted-foreground line-through">{deadline.title}</Text>
+                <Text className="text-2xl text-muted-foreground">›</Text>
+              </Pressable>
+            ))}
+          </Card>
         </>
       ) : null}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  headingCopy: { flex: 1, gap: 3 },
-  eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
-  title: { fontSize: 31, lineHeight: 37, fontWeight: '700' },
-  list: { flex: 1 },
-  completedRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: StyleSheet.hairlineWidth },
-  completedMark: { fontSize: 18, fontWeight: '800' },
-  completedTitle: { flex: 1, fontSize: 16, textDecorationLine: 'line-through' },
-  completedChevron: { fontSize: 24 },
-});

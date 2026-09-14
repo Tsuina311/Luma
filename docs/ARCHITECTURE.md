@@ -28,6 +28,10 @@ React components do not calculate urgency, recurrence obligations, reliability, 
 
 Zustand and Redux are intentionally absent. SQLite-backed screen queries plus a small refresh context are sufficient for current application state.
 
+## UI system
+
+Gluestack UI v5 provides accessible, composable primitives for controls, inputs, cards, overlays, and feedback. UniWind compiles Tailwind CSS v4 utilities for native and web from `global.css`, where Luma's semantic light/dark and urgency tokens live. Route files compose those shared primitives; they do not introduce separate page-level color systems.
+
 ## Database
 
 `SQLiteProvider` opens `luma.db`. Initialization enables WAL and foreign keys before applying numbered migrations inside exclusive transactions. `PRAGMA user_version` records the installed schema version. Migrations only move forward and never recreate user tables destructively.

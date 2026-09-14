@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { Card } from '@/components/ui/card';
 import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
 import { SettingsRepository, type Preferences } from '@/src/db/repositories/settingsRepository';
 import type {
@@ -14,7 +15,6 @@ import { DeadlineForm } from '@/src/features/deadlines/DeadlineForm';
 import { Button, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { reconcileNotifications } from '@/src/services/notifications';
-import { useTheme } from '@/src/ui/theme';
 
 type ViewData = {
   deadline: Deadline;
@@ -26,7 +26,6 @@ type ViewData = {
 export default function DeadlineDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
-  const theme = useTheme();
   const { refresh } = useDataRefresh();
   const [data, setData] = useState<ViewData>();
   const [error, setError] = useState<string>();
@@ -89,19 +88,19 @@ export default function DeadlineDetailScreen() {
         <ErrorState message={error} retry={() => { setError(undefined); setRequest((value) => value + 1); }} />
       ) : data ? (
         <>
-          <View style={[styles.status, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={styles.statusCopy}>
-              <Text style={[styles.statusTitle, { color: theme.text }]}>
+          <Card className="gap-4 rounded-3xl border-border bg-card p-5 shadow-sm">
+            <View className="gap-1.5">
+              <Text className="text-xl font-extrabold text-foreground">
                 {data.deadline.completedAt ? 'Completed' : getTimeRemaining(data.deadline.dueAt)}
               </Text>
-              <Text style={[styles.statusSubtitle, { color: theme.textMuted }]}>
+              <Text className="text-sm leading-5 text-muted-foreground">
                 {data.deadline.completedAt ? 'This item is out of your attention feed.' : 'Keep it visible until it is done or consciously rescheduled.'}
               </Text>
             </View>
             <Button variant={data.deadline.completedAt ? 'secondary' : 'primary'} onPress={() => void toggleCompleted()}>
               {data.deadline.completedAt ? 'Reopen' : 'Mark done'}
             </Button>
-          </View>
+          </Card>
           <SectionTitle>Edit deadline</SectionTitle>
           <DeadlineForm
             db={db}
@@ -120,10 +119,3 @@ export default function DeadlineDetailScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  status: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 14 },
-  statusCopy: { gap: 5 },
-  statusTitle: { fontSize: 20, fontWeight: '700' },
-  statusSubtitle: { fontSize: 14, lineHeight: 20 },
-});

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,6 @@ import {
   requestNotificationPermission,
 } from '@/src/services/notifications';
 import { Button, Field, SectionTitle } from '@/src/components/ui';
-import { useTheme } from '@/src/ui/theme';
 
 const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -28,7 +27,6 @@ export function HabitForm({
   timeFormat?: '12h' | '24h';
   onSaved: (habit: Habit) => void;
 }) {
-  const theme = useTheme();
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
@@ -97,7 +95,7 @@ export function HabitForm({
   };
 
   return (
-    <View style={styles.form}>
+    <View className="gap-5">
       <Controller
         control={control}
         name="title"
@@ -122,7 +120,7 @@ export function HabitForm({
       />
 
       <SectionTitle>Frequency</SectionTitle>
-      <View style={styles.choices}>
+      <View className="flex-row flex-wrap gap-2">
         {(['daily', 'weekdays', 'weekly'] as const).map((type) => (
           <Choice
             key={type}
@@ -133,7 +131,7 @@ export function HabitForm({
         ))}
       </View>
       {recurrence.type === 'weekdays' ? (
-        <View style={styles.weekdays}>
+        <View className="flex-row justify-between gap-1">
           {weekdayLabels.map((label, day) => {
             const selected = recurrence.days.includes(day);
             return (
@@ -146,12 +144,11 @@ export function HabitForm({
                   type: 'weekdays',
                   days: selected ? recurrence.days.filter((value) => value !== day) : [...recurrence.days, day],
                 })}
-                style={[
-                  styles.day,
-                  { backgroundColor: selected ? theme.primary : theme.surface, borderColor: selected ? theme.primary : theme.border },
-                ]}
+                className={`h-11 w-11 items-center justify-center rounded-full border ${
+                  selected ? 'border-primary bg-primary' : 'border-border bg-card'
+                }`}
               >
-                <Text style={{ color: selected ? theme.primaryText : theme.text, fontWeight: '700' }}>{label}</Text>
+                <Text className={`font-bold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>{label}</Text>
               </Pressable>
             );
           })}
@@ -168,7 +165,7 @@ export function HabitForm({
       ) : null}
 
       <SectionTitle>Target</SectionTitle>
-      <View style={styles.choices}>
+      <View className="flex-row flex-wrap gap-2">
         <Choice
           label="Done / not done"
           selected={targetType === 'boolean'}
@@ -187,7 +184,7 @@ export function HabitForm({
         />
       </View>
       {targetType === 'count' ? (
-        <View style={styles.targetRow}>
+        <View className="gap-3">
           <Controller
             control={control}
             name="targetValue"
@@ -214,7 +211,7 @@ export function HabitForm({
       <SectionTitle>Reminder</SectionTitle>
       {reminderTime ? (
         <>
-          <View style={styles.pickerRow}>
+          <View className="flex-row flex-wrap gap-2">
             <Button variant="secondary" onPress={() => setShowTimePicker(true)}>
               {format(reminderDate, timeFormat === '12h' ? 'h:mm a' : 'HH:mm')}
             </Button>
@@ -243,7 +240,7 @@ export function HabitForm({
         </Button>
       )}
 
-      {saveError ? <Text style={{ color: theme.red }}>{saveError}</Text> : null}
+      {saveError ? <Text className="text-sm text-destructive">{saveError}</Text> : null}
       <Button disabled={saving} onPress={() => void submit()}>
         {saving ? 'Saving…' : initial ? 'Save changes' : 'Create habit'}
       </Button>
@@ -252,28 +249,16 @@ export function HabitForm({
 }
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[
-        styles.choice,
-        { backgroundColor: selected ? theme.primary : theme.surface, borderColor: selected ? theme.primary : theme.border },
-      ]}
+      className={`rounded-full border px-4 py-2.5 ${
+        selected ? 'border-primary bg-primary' : 'border-border bg-card'
+      }`}
     >
-      <Text style={{ color: selected ? theme.primaryText : theme.text, fontWeight: '600' }}>{label}</Text>
+      <Text className={`font-semibold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>{label}</Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: 16 },
-  choices: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  choice: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10 },
-  weekdays: { flexDirection: 'row', justifyContent: 'space-between', gap: 5 },
-  day: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  targetRow: { gap: 12 },
-  pickerRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-});

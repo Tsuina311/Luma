@@ -1,36 +1,36 @@
 import { useColorScheme } from 'react-native';
 
 const shared = {
-  red: '#C74A42',
-  orange: '#C97832',
-  yellow: '#9A7A24',
-  green: '#427D64',
-  radius: 14,
+  red: '#E45868',
+  orange: '#E58B3D',
+  yellow: '#C8A43D',
+  green: '#48A47A',
+  radius: 18,
   spacing: { xs: 6, sm: 10, md: 16, lg: 24, xl: 32 },
 };
 
 const light = {
   ...shared,
-  background: '#F7F6F2',
+  background: '#F8F7FC',
   surface: '#FFFFFF',
-  text: '#242521',
-  textMuted: '#686A63',
-  border: '#E2E0D8',
-  primary: '#315F56',
+  text: '#1F1B30',
+  textMuted: '#6D687F',
+  border: '#E5E2EE',
+  primary: '#6553F2',
   primaryText: '#FFFFFF',
-  dangerSurface: '#F8E7E4',
+  dangerSurface: '#FDEDEF',
 };
 
 const dark = {
   ...shared,
-  background: '#171916',
-  surface: '#222520',
-  text: '#F3F1EA',
-  textMuted: '#A8AAA2',
-  border: '#383C35',
-  primary: '#8FC7B6',
-  primaryText: '#13201C',
-  dangerSurface: '#422824',
+  background: '#0E0D15',
+  surface: '#191724',
+  text: '#F6F3FF',
+  textMuted: '#A59FB5',
+  border: '#343044',
+  primary: '#9E8FFF',
+  primaryText: '#15112B',
+  dangerSurface: '#3D222A',
 };
 
 export type Theme = typeof light;

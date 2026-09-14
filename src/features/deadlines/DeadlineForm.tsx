@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +18,6 @@ import {
   requestNotificationPermission,
 } from '@/src/services/notifications';
 import { Button, Field, SectionTitle } from '@/src/components/ui';
-import { useTheme } from '@/src/ui/theme';
 
 const reminderOptions = [7, 3, 1, 0] as const;
 
@@ -32,7 +31,6 @@ type Props = {
 };
 
 export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeFormat = '24h', onSaved }: Props) {
-  const theme = useTheme();
   const defaultProfile = profiles.find((profile) => profile.isDefault) ?? profiles[0];
   const [showPicker, setShowPicker] = useState<'date' | 'time'>();
   const [saving, setSaving] = useState(false);
@@ -104,7 +102,7 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
   };
 
   return (
-    <View style={styles.form}>
+    <View className="gap-5">
       <Controller
         control={control}
         name="title"
@@ -137,7 +135,7 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
       />
 
       <SectionTitle>When</SectionTitle>
-      <View style={styles.pickerRow}>
+      <View className="flex-row flex-wrap gap-2">
         <Button variant="secondary" onPress={() => setShowPicker('date')}>
           {format(dueDate, 'EEE, d MMM yyyy')}
         </Button>
@@ -161,7 +159,7 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
       ) : null}
 
       <SectionTitle>Urgency profile</SectionTitle>
-      <View style={styles.choices}>
+      <View className="flex-row flex-wrap gap-2">
         {profiles.map((profile) => {
           const selected = urgencyProfileId === profile.id;
           return (
@@ -170,12 +168,11 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
               accessibilityRole="radio"
               accessibilityState={{ selected }}
               onPress={() => setValue('urgencyProfileId', profile.id)}
-              style={[
-                styles.choice,
-                { backgroundColor: selected ? theme.primary : theme.surface, borderColor: selected ? theme.primary : theme.border },
-              ]}
+              className={`rounded-full border px-4 py-2.5 ${
+                selected ? 'border-primary bg-primary' : 'border-border bg-card'
+              }`}
             >
-              <Text style={{ color: selected ? theme.primaryText : theme.text, fontWeight: '600' }}>
+              <Text className={`font-semibold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>
                 {profile.name}
               </Text>
             </Pressable>
@@ -184,7 +181,7 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
       </View>
 
       <SectionTitle>Remind me</SectionTitle>
-      <View style={styles.choices}>
+      <View className="flex-row flex-wrap gap-2">
         {reminderOptions.map((offset) => {
           const selected = selectedOffsets.includes(offset);
           const label = offset === 0 ? 'On the day' : `${offset} day${offset === 1 ? '' : 's'} before`;
@@ -194,27 +191,21 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
               accessibilityRole="checkbox"
               accessibilityState={{ checked: selected }}
               onPress={() => toggleOffset(offset)}
-              style={[
-                styles.choice,
-                { backgroundColor: selected ? theme.primary : theme.surface, borderColor: selected ? theme.primary : theme.border },
-              ]}
+              className={`rounded-full border px-4 py-2.5 ${
+                selected ? 'border-primary bg-primary' : 'border-border bg-card'
+              }`}
             >
-              <Text style={{ color: selected ? theme.primaryText : theme.text, fontWeight: '600' }}>{label}</Text>
+              <Text className={`font-semibold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>
+                {label}
+              </Text>
             </Pressable>
           );
         })}
       </View>
-      {saveError ? <Text style={{ color: theme.red }}>{saveError}</Text> : null}
+      {saveError ? <Text className="text-sm text-destructive">{saveError}</Text> : null}
       <Button disabled={saving} onPress={() => void submit()}>
         {saving ? 'Saving…' : initial ? 'Save changes' : 'Create deadline'}
       </Button>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: 16 },
-  pickerRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  choices: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  choice: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10 },
-});

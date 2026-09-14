@@ -9,16 +9,21 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textMuted,
-        tabBarStyle: { backgroundColor: theme.surface, borderTopColor: theme.border },
-        headerStyle: { backgroundColor: theme.background },
-        headerTintColor: theme.text,
+        headerShown: false,
+        tabBarStyle: {
+          height: 72,
+          paddingTop: 8,
+          paddingBottom: 8,
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         sceneStyle: { backgroundColor: theme.background },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Attention',
-          headerTitle: 'Luma',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'lightbulb.fill', android: 'lightbulb', web: 'lightbulb' }}

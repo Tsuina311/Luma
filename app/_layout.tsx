@@ -10,6 +10,12 @@ import { migrateDatabase } from '@/src/db/migrations';
 import { DataRefreshProvider } from '@/src/hooks/useDataRefresh';
 import { configureForegroundNotifications, reconcileNotifications } from '@/src/services/notifications';
 import { LoadingState } from '@/src/components/ui';
+import { useTheme as useLumaTheme } from '@/src/ui/theme';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import '@/global.css';
+import { SafeAreaListener } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Uniwind } from 'uniwind';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -17,24 +23,43 @@ configureForegroundNotifications();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const lumaTheme = useLumaTheme();
   return (
-    <Suspense fallback={<LoadingState />}>
-      <SQLiteProvider databaseName="luma.db" onInit={migrateDatabase} useSuspense>
-        <DataRefreshProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <AppLifecycle />
-            <StatusBar style="auto" />
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="deadline/new" options={{ title: 'New deadline', presentation: 'modal' }} />
-              <Stack.Screen name="deadline/[id]" options={{ title: 'Deadline' }} />
-              <Stack.Screen name="habit/new" options={{ title: 'New habit', presentation: 'modal' }} />
-              <Stack.Screen name="habit/[id]" options={{ title: 'Habit' }} />
-            </Stack>
-          </ThemeProvider>
-        </DataRefreshProvider>
-      </SQLiteProvider>
-    </Suspense>
+    <SafeAreaListener
+      onChange={({ insets }) => {
+        Uniwind.updateInsets(insets);
+      }}
+    >
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GluestackUIProvider mode="system">
+          <Suspense fallback={<LoadingState />}>
+            <SQLiteProvider databaseName="luma.db" onInit={migrateDatabase} useSuspense>
+              <DataRefreshProvider>
+                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                  <AppLifecycle />
+                  <StatusBar style="auto" />
+                  <Stack
+                    screenOptions={{
+                      headerStyle: { backgroundColor: lumaTheme.background },
+                      headerTintColor: lumaTheme.text,
+                      headerShadowVisible: false,
+                      headerTitleStyle: { fontWeight: '700' },
+                      contentStyle: { backgroundColor: lumaTheme.background },
+                    }}
+                  >
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="deadline/new" options={{ title: 'New deadline', presentation: 'modal' }} />
+                    <Stack.Screen name="deadline/[id]" options={{ title: 'Deadline' }} />
+                    <Stack.Screen name="habit/new" options={{ title: 'New habit', presentation: 'modal' }} />
+                    <Stack.Screen name="habit/[id]" options={{ title: 'Habit' }} />
+                  </Stack>
+                </ThemeProvider>
+              </DataRefreshProvider>
+            </SQLiteProvider>
+          </Suspense>
+        </GluestackUIProvider>
+      </GestureHandlerRootView>
+    </SafeAreaListener>
   );
 }
 

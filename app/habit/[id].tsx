@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { Card } from '@/components/ui/card';
 import { HabitRepository } from '@/src/db/repositories/habitRepository';
 import { SettingsRepository } from '@/src/db/repositories/settingsRepository';
 import { calculateHabitReliability } from '@/src/domain/habits/logic';
@@ -11,7 +12,6 @@ import { HabitForm } from '@/src/features/habits/HabitForm';
 import { Button, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { reconcileNotifications } from '@/src/services/notifications';
-import { useTheme } from '@/src/ui/theme';
 
 type ViewData = {
   habit: Habit;
@@ -23,7 +23,6 @@ type ViewData = {
 export default function HabitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
-  const theme = useTheme();
   const { refresh } = useDataRefresh();
   const [data, setData] = useState<ViewData>();
   const [error, setError] = useState<string>();
@@ -88,11 +87,11 @@ export default function HabitDetailScreen() {
         <ErrorState message={error} retry={() => { setError(undefined); setRequest((value) => value + 1); }} />
       ) : data && metrics ? (
         <>
-          <View style={[styles.summary, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Card className="flex-row rounded-3xl border-border bg-card p-5 shadow-sm">
             <Metric label="This week" value={`${metrics.completed} / ${metrics.expected}`} />
             <Metric label="Reliability" value={`${metrics.reliability}%`} />
             <Metric label="Best streak" value={String(metrics.bestStreak)} />
-          </View>
+          </Card>
           <Button variant="secondary" onPress={() => void toggleActive()}>
             {data.habit.active ? 'Pause habit' : 'Resume habit'}
           </Button>
@@ -114,18 +113,10 @@ export default function HabitDetailScreen() {
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  const theme = useTheme();
   return (
-    <View style={styles.metric}>
-      <Text style={[styles.metricValue, { color: theme.text }]}>{value}</Text>
-      <Text style={[styles.metricLabel, { color: theme.textMuted }]}>{label}</Text>
+    <View className="flex-1 gap-1">
+      <Text className="text-xl font-extrabold text-foreground">{value}</Text>
+      <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  summary: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, padding: 16 },
-  metric: { flex: 1, gap: 4 },
-  metricValue: { fontSize: 22, fontWeight: '700' },
-  metricLabel: { fontSize: 12 },
-});

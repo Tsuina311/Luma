@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { Card } from '@/components/ui/card';
 import { HabitRepository } from '@/src/db/repositories/habitRepository';
 import { SettingsRepository } from '@/src/db/repositories/settingsRepository';
 import { getHabitStatusForDate } from '@/src/domain/habits/logic';
@@ -11,13 +12,11 @@ import { toLocalDateKey } from '@/src/utils/dates';
 import { Button, EmptyState, ErrorState, LoadingState, Screen } from '@/src/components/ui';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { reconcileNotifications } from '@/src/services/notifications';
-import { useTheme } from '@/src/ui/theme';
 
 type HabitsData = { habits: Habit[]; logs: HabitLog[]; weekStartsOn: WeekStart };
 
 export default function HabitsScreen() {
   const db = useSQLiteContext();
-  const theme = useTheme();
   const { revision, refresh } = useDataRefresh();
   const [data, setData] = useState<HabitsData>();
   const [error, setError] = useState<string>();
@@ -56,10 +55,11 @@ export default function HabitsScreen() {
 
   return (
     <Screen>
-      <View style={styles.heading}>
-        <View style={styles.headingCopy}>
-          <Text style={[styles.title, { color: theme.text }]}>Habits</Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>Small actions, reliably repeated.</Text>
+      <View className="flex-row items-center justify-between gap-4 py-1">
+        <View className="flex-1 gap-1">
+          <Text className="text-xs font-extrabold uppercase tracking-[1.8px] text-primary">Build momentum</Text>
+          <Text className="text-[32px] font-extrabold tracking-[-1px] text-foreground">Habits</Text>
+          <Text className="text-sm text-muted-foreground">Small actions, reliably repeated.</Text>
         </View>
         <Button onPress={() => router.push('/habit/new')}>+ Habit</Button>
       </View>
@@ -72,20 +72,34 @@ export default function HabitsScreen() {
           action={<Button onPress={() => router.push('/habit/new')}>Create a habit</Button>}
         />
       ) : (
-        <View>
+        <View className="gap-3">
           {data?.habits.map((habit) => {
             const logs = data.logs.filter((log) => log.habitId === habit.id);
             const status = getHabitStatusForDate(habit, logs, new Date(), data.weekStartsOn);
             const step = Math.max(1, Math.round(habit.targetValue / 10));
             return (
-              <View key={habit.id} style={[styles.row, { borderBottomColor: theme.border }]}>
+              <Card
+                key={habit.id}
+                className="min-h-28 flex-row items-center gap-4 rounded-3xl border-border bg-card p-4 shadow-sm"
+              >
                 <Pressable
-                  style={styles.rowCopy}
+                  className="flex-1 gap-2 active:opacity-60"
                   accessibilityRole="button"
                   onPress={() => router.push(`/habit/${habit.id}` as never)}
                 >
-                  <Text style={[styles.habitTitle, { color: theme.text }]}>{habit.title}</Text>
-                  <Text style={[styles.habitSubtitle, { color: theme.textMuted }]}>{status.subtitle}</Text>
+                  <View className="flex-row items-center gap-2">
+                    <View className={`h-2.5 w-2.5 rounded-full ${status.completed ? 'bg-urgency-green' : 'bg-primary'}`} />
+                    <Text className="text-[18px] font-bold tracking-tight text-foreground">{habit.title}</Text>
+                  </View>
+                  <Text className="text-sm font-medium text-muted-foreground">{status.subtitle}</Text>
+                  {habit.targetType === 'count' ? (
+                    <View className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <View
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${Math.min(100, (status.current / status.target) * 100)}%` }}
+                      />
+                    </View>
+                  ) : null}
                 </Pressable>
                 {habit.targetType === 'boolean' ? (
                   <Button
@@ -95,27 +109,27 @@ export default function HabitsScreen() {
                     {status.completed ? 'Undo' : 'Done'}
                   </Button>
                 ) : (
-                  <View style={styles.counter}>
+                  <View className="flex-row items-center gap-2">
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Subtract ${step}`}
                       onPress={() => void setProgress(habit, status.current - step)}
-                      style={[styles.counterButton, { borderColor: theme.border }]}
+                      className="h-10 w-10 items-center justify-center rounded-full border border-border bg-background active:bg-muted"
                     >
-                      <Text style={[styles.counterButtonText, { color: theme.text }]}>−</Text>
+                      <Text className="text-xl text-foreground">−</Text>
                     </Pressable>
-                    <Text style={[styles.counterValue, { color: theme.text }]}>{status.current}</Text>
+                    <Text className="min-w-7 text-center text-base font-bold text-foreground">{status.current}</Text>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Add ${step}`}
                       onPress={() => void setProgress(habit, Math.min(habit.targetValue, status.current + step))}
-                      style={[styles.counterButton, { borderColor: theme.border }]}
+                      className="h-10 w-10 items-center justify-center rounded-full bg-primary active:opacity-70"
                     >
-                      <Text style={[styles.counterButtonText, { color: theme.text }]}>+</Text>
+                      <Text className="text-xl font-semibold text-primary-foreground">+</Text>
                     </Pressable>
                   </View>
                 )}
-              </View>
+              </Card>
             );
           })}
         </View>
@@ -123,18 +137,3 @@ export default function HabitsScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 8 },
-  headingCopy: { flex: 1, gap: 3 },
-  title: { fontSize: 31, fontWeight: '700' },
-  subtitle: { fontSize: 15 },
-  row: { minHeight: 86, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: 13 },
-  rowCopy: { flex: 1, gap: 5 },
-  habitTitle: { fontSize: 18, fontWeight: '600' },
-  habitSubtitle: { fontSize: 14 },
-  counter: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  counterButton: { width: 38, height: 38, borderWidth: 1, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  counterButtonText: { fontSize: 24, lineHeight: 27 },
-  counterValue: { minWidth: 28, fontSize: 17, fontWeight: '700', textAlign: 'center' },
-});

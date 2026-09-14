@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import 'uniwind';
+
+@layer theme {
+  :root {
+    @variant light {
+      --primary: 101 83 242;
+      --primary-foreground: 255 255 255;
+      --card: 255 255 255;
+      --secondary: 239 236 255;
+      --secondary-foreground: 69 52 186;
+      --background: 248 247 252;
+      --popover: 255 255 255;
+      --popover-foreground: 31 27 48;
+      --muted: 243 241 248;
+      --muted-foreground: 109 104 127;
+      --destructive: 207 61 79;
+      --foreground: 31 27 48;
+      --border: 229 226 238;
+      --input: 221 217 233;
+      --ring: 101 83 242;
+      --accent: 243 240 255;
+      --accent-foreground: 69 52 186;
+    }
+
+    @variant dark {
+      --primary: 158 143 255;
+      --primary-foreground: 21 17 43;
+      --card: 25 23 36;
+      --secondary: 45 39 76;
+      --secondary-foreground: 224 218 255;
+      --background: 14 13 21;
+      --popover: 25 23 36;
+      --popover-foreground: 246 243 255;
+      --muted: 34 31 46;
+      --muted-foreground: 165 159 181;
+      --destructive: 255 112 128;
+      --foreground: 246 243 255;
+      --border: 52 48 68;
+      --input: 61 56 78;
+      --ring: 158 143 255;
+      --accent: 42 36 70;
+      --accent-foreground: 224 218 255;
+    }
+  }
+}
+
+@theme inline {
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-card: rgb(var(--card));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-background: rgb(var(--background));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-foreground: rgb(var(--foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-urgency-red: #e45868;
+  --color-urgency-orange: #e58b3d;
+  --color-urgency-yellow: #c8a43d;
+  --color-urgency-green: #48a47a;
+}

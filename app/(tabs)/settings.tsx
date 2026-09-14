@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { Card } from '@/components/ui/card';
 import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
 import { SettingsRepository, type Preferences } from '@/src/db/repositories/settingsRepository';
 import { Button, Divider, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
@@ -13,7 +14,6 @@ import {
   reconcileNotifications,
   requestNotificationPermission,
 } from '@/src/services/notifications';
-import { useTheme } from '@/src/ui/theme';
 
 type SettingsData = {
   preferences: Preferences;
@@ -23,7 +23,6 @@ type SettingsData = {
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
-  const theme = useTheme();
   const { refresh } = useDataRefresh();
   const [data, setData] = useState<SettingsData>();
   const [error, setError] = useState<string>();
@@ -91,64 +90,76 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <View style={styles.heading}>
-        <Text style={[styles.title, { color: theme.text }]}>Settings</Text>
-        <Text style={[styles.subtitle, { color: theme.textMuted }]}>A few defaults. Nothing more.</Text>
+      <View className="gap-1 py-1">
+        <Text className="text-xs font-extrabold uppercase tracking-[1.8px] text-primary">Make it yours</Text>
+        <Text className="text-[32px] font-extrabold tracking-[-1px] text-foreground">Settings</Text>
+        <Text className="text-sm text-muted-foreground">A few thoughtful defaults. Nothing more.</Text>
       </View>
       {!data && !error ? <LoadingState /> : error ? (
         <ErrorState message={error} retry={() => { setError(undefined); setRequest((value) => value + 1); }} />
       ) : data ? (
         <>
           <SectionTitle>Reminders</SectionTitle>
-          <SettingRow label="Notification permission" value={permissionLabel(data.permission)} />
+          <Card className="gap-3 rounded-3xl border-border bg-card p-4 shadow-sm">
+            <SettingRow label="Notification permission" value={permissionLabel(data.permission)} />
+            {data.permission === 'granted' ? (
+              <View className="self-start rounded-full bg-urgency-green/10 px-3 py-1">
+                <Text className="text-xs font-bold text-urgency-green">Ready</Text>
+              </View>
+            ) : null}
           {data.permission !== 'granted' && data.permission !== 'unavailable' ? (
             <Button variant="secondary" onPress={() => void handleNotifications()}>
               {data.permission === 'denied' ? 'Open system settings' : 'Enable notifications'}
             </Button>
           ) : null}
-          <Divider />
+          </Card>
 
           <SectionTitle>Calendar</SectionTitle>
-          <SettingRow label="Week starts" value={data.preferences.weekStartsOn === 1 ? 'Monday' : 'Sunday'} />
-          <View style={styles.actions}>
-            <Button
-              variant={data.preferences.weekStartsOn === 1 ? 'primary' : 'secondary'}
-              onPress={() => void updatePreferences({ weekStartsOn: 1 })}
-            >
-              Monday
-            </Button>
-            <Button
-              variant={data.preferences.weekStartsOn === 0 ? 'primary' : 'secondary'}
-              onPress={() => void updatePreferences({ weekStartsOn: 0 })}
-            >
-              Sunday
-            </Button>
-          </View>
-          <SettingRow label="Time format" value={data.preferences.timeFormat === '24h' ? '24 hour' : '12 hour'} />
-          <View style={styles.actions}>
-            <Button
-              variant={data.preferences.timeFormat === '24h' ? 'primary' : 'secondary'}
-              onPress={() => void updatePreferences({ timeFormat: '24h' })}
-            >
-              24 hour
-            </Button>
-            <Button
-              variant={data.preferences.timeFormat === '12h' ? 'primary' : 'secondary'}
-              onPress={() => void updatePreferences({ timeFormat: '12h' })}
-            >
-              12 hour
-            </Button>
-          </View>
-          <SettingRow label="Default urgency profile" value={data.profileName} />
-          <Text style={[styles.note, { color: theme.textMuted }]}>
-            Additional profile editing is the immediate follow-up; the data model already supports it.
-          </Text>
+          <Card className="gap-4 rounded-3xl border-border bg-card p-4 shadow-sm">
+            <SettingRow label="Week starts" value={data.preferences.weekStartsOn === 1 ? 'Monday' : 'Sunday'} />
+            <View className="flex-row gap-2">
+              <Button
+                variant={data.preferences.weekStartsOn === 1 ? 'primary' : 'secondary'}
+                onPress={() => void updatePreferences({ weekStartsOn: 1 })}
+              >
+                Monday
+              </Button>
+              <Button
+                variant={data.preferences.weekStartsOn === 0 ? 'primary' : 'secondary'}
+                onPress={() => void updatePreferences({ weekStartsOn: 0 })}
+              >
+                Sunday
+              </Button>
+            </View>
+            <Divider />
+            <SettingRow label="Time format" value={data.preferences.timeFormat === '24h' ? '24 hour' : '12 hour'} />
+            <View className="flex-row gap-2">
+              <Button
+                variant={data.preferences.timeFormat === '24h' ? 'primary' : 'secondary'}
+                onPress={() => void updatePreferences({ timeFormat: '24h' })}
+              >
+                24 hour
+              </Button>
+              <Button
+                variant={data.preferences.timeFormat === '12h' ? 'primary' : 'secondary'}
+                onPress={() => void updatePreferences({ timeFormat: '12h' })}
+              >
+                12 hour
+              </Button>
+            </View>
+            <Divider />
+            <SettingRow label="Default urgency profile" value={data.profileName} />
+            <Text className="text-sm leading-5 text-muted-foreground">
+              Additional profile editing is coming next. Every deadline already keeps its profile independently.
+            </Text>
+          </Card>
 
           {__DEV__ ? (
             <>
-              <Divider />
               <SectionTitle>Development</SectionTitle>
-              <Button variant="secondary" onPress={() => void seed()}>Add sample data</Button>
+              <Card className="rounded-3xl border-border bg-card p-4 shadow-sm">
+                <Button variant="secondary" onPress={() => void seed()}>Add sample data</Button>
+              </Card>
             </>
           ) : null}
         </>
@@ -158,11 +169,10 @@ export default function SettingsScreen() {
 }
 
 function SettingRow({ label, value }: { label: string; value: string }) {
-  const theme = useTheme();
   return (
-    <View style={styles.row}>
-      <Text style={[styles.rowLabel, { color: theme.text }]}>{label}</Text>
-      <Text style={[styles.rowValue, { color: theme.textMuted }]}>{value}</Text>
+    <View className="min-h-10 flex-row items-center justify-between gap-4">
+      <Text className="flex-1 text-base font-semibold text-foreground">{label}</Text>
+      <Text className="text-sm font-medium text-muted-foreground">{value}</Text>
     </View>
   );
 }
@@ -173,14 +183,3 @@ function permissionLabel(permission: NotificationPermissionState): string {
   if (permission === 'unavailable') return 'Unavailable on web';
   return 'Not requested';
 }
-
-const styles = StyleSheet.create({
-  heading: { gap: 4, marginBottom: 4 },
-  title: { fontSize: 31, fontWeight: '700' },
-  subtitle: { fontSize: 15 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, gap: 16 },
-  rowLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
-  rowValue: { fontSize: 15 },
-  actions: { flexDirection: 'row', gap: 10 },
-  note: { fontSize: 13, lineHeight: 19 },
-});
