@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 const migrations: Record<number, string> = {
@@ -104,13 +105,27 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   while (currentVersion < latestVersion) {
     const nextVersion = currentVersion + 1;
-    await db.withExclusiveTransactionAsync(async () => {
-      await db.execAsync(migrations[nextVersion]);
-      if (nextVersion === 1) await seedFoundation(db);
-      await db.execAsync(`PRAGMA user_version = ${nextVersion}`);
+    await runInTransaction(db, async (executor) => {
+      await executor.execAsync(migrations[nextVersion]);
+      if (nextVersion === 1) await seedFoundation(executor);
+      await executor.execAsync(`PRAGMA user_version = ${nextVersion}`);
     });
     currentVersion = nextVersion;
   }
+}
+
+// An exclusive transaction runs on its own connection, so every statement must
+// use the transaction it hands back rather than the original database. Web has
+// no exclusive transactions, and a single tab has no competing writer anyway.
+async function runInTransaction(
+  db: SQLiteDatabase,
+  task: (executor: SQLiteDatabase) => Promise<void>,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    await db.withTransactionAsync(() => task(db));
+    return;
+  }
+  await db.withExclusiveTransactionAsync((transaction) => task(transaction));
 }
 
 async function seedFoundation(db: SQLiteDatabase): Promise<void> {
