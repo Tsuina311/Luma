@@ -6,24 +6,20 @@ import {
   isSameDay,
 } from 'date-fns';
 import type { Urgency } from '@/src/domain/shared';
-import type { Deadline, UrgencyProfile } from './schemas';
+import type { Deadline } from './schemas';
 
-const DAY_MS = 86_400_000;
+const MINUTE_MS = 60_000;
 
 export function calculateDeadlineUrgency(
   deadline: Deadline,
-  profile: UrgencyProfile,
   now = new Date(),
 ): Urgency {
   if (deadline.completedAt) return 'green';
   const due = new Date(deadline.dueAt);
   if (due.getTime() < now.getTime()) return 'red';
 
-  const remainingDays = (due.getTime() - now.getTime()) / DAY_MS;
-  if (remainingDays < profile.redDays) return 'red';
-  if (remainingDays <= profile.orangeDays) return 'orange';
-  if (remainingDays <= profile.yellowDays) return 'yellow';
-  return 'green';
+  const remainingMinutes = (due.getTime() - now.getTime()) / MINUTE_MS;
+  return remainingMinutes <= deadline.urgentBeforeMinutes ? 'yellow' : 'green';
 }
 
 export function getTimeRemaining(dueAt: string | Date, now = new Date()): string {

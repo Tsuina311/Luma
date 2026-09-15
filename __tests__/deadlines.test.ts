@@ -2,27 +2,17 @@ import { addDays, addHours } from 'date-fns';
 import { describe, expect, it } from '@jest/globals';
 import { compareAttentionItems, getAttentionItems } from '@/src/domain/attention/engine';
 import { calculateDeadlineUrgency, getTimeRemaining } from '@/src/domain/deadlines/logic';
-import type { Deadline, UrgencyProfile } from '@/src/domain/deadlines/schemas';
+import type { Deadline } from '@/src/domain/deadlines/schemas';
 import type { AttentionItem, Urgency } from '@/src/domain/shared';
 
 const now = new Date('2026-09-14T10:00:00.000Z');
-const profile: UrgencyProfile = {
-  id: 'normal',
-  name: 'Normal',
-  yellowDays: 30,
-  orangeDays: 14,
-  redDays: 5,
-  isDefault: true,
-  createdAt: now.toISOString(),
-  updatedAt: now.toISOString(),
-};
-
-function deadline(days: number, completed = false): Deadline {
+function deadline(days: number, completed = false, urgentBeforeMinutes = 1440): Deadline {
   return {
     id: `deadline-${days}`,
     title: `Deadline ${days}`,
     dueAt: addDays(now, days).toISOString(),
-    urgencyProfileId: profile.id,
+    urgencyProfileId: 'normal',
+    urgentBeforeMinutes,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     completedAt: completed ? now.toISOString() : undefined,
@@ -31,19 +21,21 @@ function deadline(days: number, completed = false): Deadline {
 
 describe('deadline urgency', () => {
   it.each<[number, Urgency]>([
-    [31, 'green'],
-    [30, 'yellow'],
-    [15, 'yellow'],
-    [14, 'orange'],
-    [5, 'orange'],
-    [4, 'red'],
+    [30, 'green'],
+    [3, 'green'],
+    [1, 'yellow'],
+    [0, 'yellow'],
     [-1, 'red'],
   ])('classifies the exact %s-day boundary as %s', (days, expected) => {
-    expect(calculateDeadlineUrgency(deadline(days), profile, now)).toBe(expected);
+    expect(calculateDeadlineUrgency(deadline(days), now)).toBe(expected);
+  });
+
+  it('uses the deadline’s custom urgency window', () => {
+    expect(calculateDeadlineUrgency(deadline(3, false, 4 * 1440), now)).toBe('yellow');
   });
 
   it('does not leave a completed deadline urgent', () => {
-    expect(calculateDeadlineUrgency(deadline(-3, true), profile, now)).toBe('green');
+    expect(calculateDeadlineUrgency(deadline(-3, true), now)).toBe('green');
   });
 });
 
@@ -62,11 +54,10 @@ describe('attention sorting', () => {
   it('orders by urgency then actionable time and excludes completed deadlines', () => {
     const items = getAttentionItems({
       deadlines: [deadline(30), deadline(2), deadline(8), deadline(-1), deadline(1, true)],
-      profiles: [profile],
       habits: [],
       habitLogs: [],
     }, now);
-    expect(items.map((item) => item.urgency)).toEqual(['red', 'red', 'orange', 'yellow']);
+    expect(items.map((item) => item.urgency)).toEqual(['red', 'green', 'green', 'green']);
     expect(items[0].sourceId).toBe('deadline--1');
   });
 

@@ -12,20 +12,29 @@ The current build includes:
 - a Gluestack UI v5 component system styled with UniWind and adaptive light/dark themes;
 - SQLite migrations and notification reconciliation with no account or backend.
 
-## Requirements
+## Ship to a phone
 
-- Node.js 20 or newer
-- Xcode/iOS Simulator or Android Studio for native development
-- A development build or physical device for realistic notification testing
+Luma needs a native build (SQLite, notifications, dynamic app icons). GitHub Pages / Expo Go are not enough.
 
-## Run
+### Preview APK (Android, install tonight)
 
 ```bash
-npm install
-npm start
+npx eas-cli login
+npx eas-cli init
+npx eas-cli build --platform android --profile preview
 ```
 
-Then choose iOS or Android from Expo. Local notification behavior should be verified in a native development build:
+When the build finishes, open the Expo build page on your phone and tap **Install**, or download the `.apk`.
+
+### iOS device
+
+Requires an Apple Developer account and a registered device for internal distribution:
+
+```bash
+npx eas-cli build --platform ios --profile preview
+```
+
+### Local native run
 
 ```bash
 npx expo run:ios
@@ -33,7 +42,6 @@ npx expo run:ios
 npx expo run:android
 ```
 
-Notification permission is not requested at launch. Luma explains the need after the first item with a reminder is saved.
 
 ## Development commands
 

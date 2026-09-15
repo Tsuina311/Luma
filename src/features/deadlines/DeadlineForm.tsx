@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Alert, Text, View } from 'react-native';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
 import {
@@ -17,7 +15,9 @@ import {
   reconcileNotifications,
   requestNotificationPermission,
 } from '@/src/services/notifications';
-import { Button, Field, SectionTitle } from '@/src/components/ui';
+import { Button, Field, SectionHeader, SegmentedControl, TactilePressable } from '@/src/components/ui';
+import { DueAtPicker } from '@/src/features/deadlines/DueAtPicker';
+import { selectionFeedback } from '@/src/ui/feedback';
 
 const reminderOptions = [7, 3, 1, 0] as const;
 
@@ -32,7 +32,9 @@ type Props = {
 
 export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeFormat = '24h', onSaved }: Props) {
   const defaultProfile = profiles.find((profile) => profile.isDefault) ?? profiles[0];
-  const [showPicker, setShowPicker] = useState<'date' | 'time'>();
+  const [urgencyUnit, setUrgencyUnit] = useState<'hours' | 'days'>(
+    initial && initial.urgentBeforeMinutes < 1440 ? 'hours' : 'days',
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const [defaultDueAt] = useState(() => new Date(Date.now() + 86_400_000).toISOString());
@@ -43,13 +45,14 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
       notes: initial?.notes ?? '',
       dueAt: initial?.dueAt ?? defaultDueAt,
       urgencyProfileId: initial?.urgencyProfileId ?? defaultProfile?.id ?? 'normal',
+      urgentBeforeMinutes: initial?.urgentBeforeMinutes ?? 1440,
       reminderOffsets: initialOffsets.filter((value): value is 0 | 1 | 3 | 7 =>
         reminderOptions.includes(value as 0 | 1 | 3 | 7)),
     },
   });
   const dueAt = useWatch({ control, name: 'dueAt' });
   const selectedOffsets = useWatch({ control, name: 'reminderOffsets' });
-  const urgencyProfileId = useWatch({ control, name: 'urgencyProfileId' });
+  const urgentBeforeMinutes = useWatch({ control, name: 'urgentBeforeMinutes' });
   const dueDate = new Date(dueAt);
 
   const submit = handleSubmit(async (values) => {
@@ -92,6 +95,7 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
   });
 
   const toggleOffset = (offset: 0 | 1 | 3 | 7) => {
+    selectionFeedback();
     setValue(
       'reminderOffsets',
       selectedOffsets.includes(offset)
@@ -102,7 +106,7 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
   };
 
   return (
-    <View className="gap-5">
+    <View className="gap-4">
       <Controller
         control={control}
         name="title"
@@ -134,76 +138,73 @@ export function DeadlineForm({ db, profiles, initial, initialOffsets = [], timeF
         )}
       />
 
-      <SectionTitle>When</SectionTitle>
-      <View className="flex-row flex-wrap gap-2">
-        <Button variant="secondary" onPress={() => setShowPicker('date')}>
-          {format(dueDate, 'EEE, d MMM yyyy')}
-        </Button>
-        <Button variant="secondary" onPress={() => setShowPicker('time')}>
-          {format(dueDate, timeFormat === '12h' ? 'h:mm a' : 'HH:mm')}
-        </Button>
-      </View>
-      {showPicker ? (
-        <DateTimePicker
-          value={dueDate}
-          mode={showPicker}
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(_, value) => {
-            if (Platform.OS !== 'ios') setShowPicker(undefined);
-            if (value) setValue('dueAt', value.toISOString(), { shouldDirty: true, shouldValidate: true });
-          }}
+      <SectionHeader>When</SectionHeader>
+      <DueAtPicker
+        value={dueDate}
+        timeFormat={timeFormat}
+        onChange={(next) => {
+          setValue('dueAt', next.toISOString(), { shouldDirty: true, shouldValidate: true });
+        }}
+      />
+
+      <SectionHeader>Become urgent</SectionHeader>
+      <Text className="text-sm text-muted-foreground">Show yellow this long before it is due.</Text>
+      <View className="flex-row items-end gap-3">
+        <View className="w-28">
+          <Field
+            label="Before due"
+            value={String(Math.max(1, Math.round(
+              urgentBeforeMinutes / (urgencyUnit === 'days' ? 1440 : 60),
+            )))}
+            onChangeText={(value) => {
+              const amount = Number.parseInt(value, 10);
+              if (Number.isFinite(amount)) {
+                setValue(
+                  'urgentBeforeMinutes',
+                  amount * (urgencyUnit === 'days' ? 1440 : 60),
+                  { shouldDirty: true, shouldValidate: true },
+                );
+              }
+            }}
+            keyboardType="number-pad"
+            error={errors.urgentBeforeMinutes?.message}
+          />
+        </View>
+        <SegmentedControl
+          accessibilityLabel="Urgency time unit"
+          value={urgencyUnit}
+          options={[
+            { value: 'hours', label: 'Hours' },
+            { value: 'days', label: 'Days' },
+          ]}
+          onChange={setUrgencyUnit}
         />
-      ) : null}
-      {showPicker && Platform.OS === 'ios' ? (
-        <Button variant="secondary" onPress={() => setShowPicker(undefined)}>Done</Button>
-      ) : null}
-
-      <SectionTitle>Urgency profile</SectionTitle>
-      <View className="flex-row flex-wrap gap-2">
-        {profiles.map((profile) => {
-          const selected = urgencyProfileId === profile.id;
-          return (
-            <Pressable
-              key={profile.id}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              onPress={() => setValue('urgencyProfileId', profile.id)}
-              className={`rounded-full border px-4 py-2.5 ${
-                selected ? 'border-primary bg-primary' : 'border-border bg-card'
-              }`}
-            >
-              <Text className={`font-semibold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>
-                {profile.name}
-              </Text>
-            </Pressable>
-          );
-        })}
       </View>
 
-      <SectionTitle>Remind me</SectionTitle>
+      <SectionHeader>Remind me</SectionHeader>
       <View className="flex-row flex-wrap gap-2">
         {reminderOptions.map((offset) => {
           const selected = selectedOffsets.includes(offset);
           const label = offset === 0 ? 'On the day' : `${offset} day${offset === 1 ? '' : 's'} before`;
           return (
-            <Pressable
+            <TactilePressable
               key={offset}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: selected }}
               onPress={() => toggleOffset(offset)}
-              className={`rounded-full border px-4 py-2.5 ${
-                selected ? 'border-primary bg-primary' : 'border-border bg-card'
+              className={`min-h-10 justify-center rounded-[9px] border px-3.5 ${
+                selected ? 'border-primary bg-accent' : 'border-border bg-card'
               }`}
             >
-              <Text className={`font-semibold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>
-                {label}
+              <Text className={`text-sm ${selected ? 'font-semibold text-accent-foreground' : 'font-medium text-foreground'}`}>
+                {selected ? '✓  ' : ''}{label}
               </Text>
-            </Pressable>
+            </TactilePressable>
           );
         })}
       </View>
       {saveError ? <Text className="text-sm text-destructive">{saveError}</Text> : null}
-      <Button disabled={saving} onPress={() => void submit()}>
+      <Button haptic disabled={saving} onPress={() => void submit()}>
         {saving ? 'Saving…' : initial ? 'Save changes' : 'Create deadline'}
       </Button>
     </View>

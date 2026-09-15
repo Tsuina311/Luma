@@ -4,22 +4,29 @@
     "slug": "luma",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon-green.png",
     "scheme": "luma",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.luma.attention"
+      "bundleIdentifier": "app.luma.attention",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true
+      }
     },
     "android": {
       "package": "app.luma.attention",
+      "versionCode": 1,
       "permissions": [
-        "SCHEDULE_EXACT_ALARM"
+        "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
+        "backgroundColor": "#F9F7EC",
+        "foregroundImage": "./assets/images/app-icon-green.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -41,10 +48,33 @@
         }
       ],
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      [
+        "expo-runtime-app-icon",
+        {
+          "icons": {
+            "yellow": {
+              "image": "./assets/images/app-icon-yellow.png",
+              "backgroundColor": "#FFF8DE"
+            },
+            "red": {
+              "image": "./assets/images/app-icon-red.png",
+              "backgroundColor": "#FFF0E9"
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "58c09b8f-1967-41b3-b139-0711c2009f61"
+      }
+    },
+    "owner": "tsuina"
   }
 }

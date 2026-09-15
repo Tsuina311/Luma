@@ -27,6 +27,8 @@ export const habitSchema = z.object({
   active: z.boolean(),
   createdAt: isoTimestampSchema,
   updatedAt: isoTimestampSchema,
+  archivedAt: isoTimestampSchema.optional(),
+  archiveReason: z.enum(['deleted']).optional(),
 });
 
 export type Habit = z.infer<typeof habitSchema>;
@@ -53,6 +55,7 @@ export const habitLogSchema = z.object({
   habitId: z.string().min(1),
   date: localDateSchema,
   amount: z.number().nonnegative(),
+  previousAmount: z.number().nonnegative().optional(),
   completed: z.boolean(),
   createdAt: isoTimestampSchema,
   updatedAt: isoTimestampSchema,

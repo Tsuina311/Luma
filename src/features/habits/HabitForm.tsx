@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +12,14 @@ import {
   reconcileNotifications,
   requestNotificationPermission,
 } from '@/src/services/notifications';
-import { Button, Field, SectionTitle } from '@/src/components/ui';
+import {
+  Button,
+  Field,
+  SectionHeader,
+  SegmentedControl,
+  TactilePressable,
+} from '@/src/components/ui';
+import { selectionFeedback } from '@/src/ui/feedback';
 
 const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -95,7 +102,7 @@ export function HabitForm({
   };
 
   return (
-    <View className="gap-5">
+    <View className="gap-4">
       <Controller
         control={control}
         name="title"
@@ -119,37 +126,40 @@ export function HabitForm({
         )}
       />
 
-      <SectionTitle>Frequency</SectionTitle>
-      <View className="flex-row flex-wrap gap-2">
-        {(['daily', 'weekdays', 'weekly'] as const).map((type) => (
-          <Choice
-            key={type}
-            label={type === 'daily' ? 'Every day' : type === 'weekdays' ? 'Selected days' : 'Times per week'}
-            selected={recurrence.type === type}
-            onPress={() => setRecurrenceType(type)}
-          />
-        ))}
-      </View>
+      <SectionHeader>Frequency</SectionHeader>
+      <SegmentedControl
+        accessibilityLabel="Habit frequency"
+        value={recurrence.type}
+        options={[
+          { value: 'daily', label: 'Daily' },
+          { value: 'weekdays', label: 'Days' },
+          { value: 'weekly', label: 'Weekly' },
+        ]}
+        onChange={setRecurrenceType}
+      />
       {recurrence.type === 'weekdays' ? (
         <View className="flex-row justify-between gap-1">
           {weekdayLabels.map((label, day) => {
             const selected = recurrence.days.includes(day);
             return (
-              <Pressable
+              <TactilePressable
                 key={day}
                 accessibilityRole="checkbox"
                 accessibilityLabel={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}
                 accessibilityState={{ checked: selected }}
-                onPress={() => setValue('recurrence', {
-                  type: 'weekdays',
-                  days: selected ? recurrence.days.filter((value) => value !== day) : [...recurrence.days, day],
-                })}
-                className={`h-11 w-11 items-center justify-center rounded-full border ${
-                  selected ? 'border-primary bg-primary' : 'border-border bg-card'
+                onPress={() => {
+                  selectionFeedback();
+                  setValue('recurrence', {
+                    type: 'weekdays',
+                    days: selected ? recurrence.days.filter((value) => value !== day) : [...recurrence.days, day],
+                  });
+                }}
+                className={`h-11 w-11 items-center justify-center rounded-[9px] border ${
+                  selected ? 'border-primary bg-accent' : 'border-border bg-card'
                 }`}
               >
-                <Text className={`font-bold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>{label}</Text>
-              </Pressable>
+                <Text className={`text-sm font-semibold ${selected ? 'text-accent-foreground' : 'text-foreground'}`}>{label}</Text>
+              </TactilePressable>
             );
           })}
         </View>
@@ -164,25 +174,24 @@ export function HabitForm({
         />
       ) : null}
 
-      <SectionTitle>Target</SectionTitle>
-      <View className="flex-row flex-wrap gap-2">
-        <Choice
-          label="Done / not done"
-          selected={targetType === 'boolean'}
-          onPress={() => {
+      <SectionHeader>Target</SectionHeader>
+      <SegmentedControl
+        accessibilityLabel="Habit target type"
+        value={targetType}
+        options={[
+          { value: 'boolean', label: 'Done / not done' },
+          { value: 'count', label: 'Number' },
+        ]}
+        onChange={(value) => {
+          if (value === 'boolean') {
             setValue('targetType', 'boolean');
             setValue('targetValue', 1);
-          }}
-        />
-        <Choice
-          label="Number"
-          selected={targetType === 'count'}
-          onPress={() => {
+          } else {
             setValue('targetType', 'count');
             if (targetValue === 1) setValue('targetValue', 10);
-          }}
-        />
-      </View>
+          }
+        }}
+      />
       {targetType === 'count' ? (
         <View className="gap-3">
           <Controller
@@ -208,14 +217,14 @@ export function HabitForm({
         </View>
       ) : null}
 
-      <SectionTitle>Reminder</SectionTitle>
+      <SectionHeader>Reminder</SectionHeader>
       {reminderTime ? (
         <>
           <View className="flex-row flex-wrap gap-2">
-            <Button variant="secondary" onPress={() => setShowTimePicker(true)}>
+            <Button size="compact" variant="secondary" onPress={() => setShowTimePicker(true)}>
               {format(reminderDate, timeFormat === '12h' ? 'h:mm a' : 'HH:mm')}
             </Button>
-            <Button variant="secondary" onPress={() => setValue('reminderTime', undefined)}>Remove</Button>
+            <Button size="compact" variant="ghost" onPress={() => setValue('reminderTime', undefined)}>Remove</Button>
           </View>
           {showTimePicker ? (
             <DateTimePicker
@@ -231,34 +240,19 @@ export function HabitForm({
             />
           ) : null}
           {showTimePicker && Platform.OS === 'ios' ? (
-            <Button variant="secondary" onPress={() => setShowTimePicker(false)}>Done</Button>
+            <Button size="compact" variant="secondary" onPress={() => setShowTimePicker(false)}>Done</Button>
           ) : null}
         </>
       ) : (
-        <Button variant="secondary" onPress={() => { setValue('reminderTime', '19:00'); setShowTimePicker(true); }}>
+        <Button size="compact" variant="secondary" onPress={() => { setValue('reminderTime', '19:00'); setShowTimePicker(true); }}>
           Add reminder time
         </Button>
       )}
 
       {saveError ? <Text className="text-sm text-destructive">{saveError}</Text> : null}
-      <Button disabled={saving} onPress={() => void submit()}>
+      <Button haptic disabled={saving} onPress={() => void submit()}>
         {saving ? 'Saving…' : initial ? 'Save changes' : 'Create habit'}
       </Button>
     </View>
-  );
-}
-
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      className={`rounded-full border px-4 py-2.5 ${
-        selected ? 'border-primary bg-primary' : 'border-border bg-card'
-      }`}
-    >
-      <Text className={`font-semibold ${selected ? 'text-primary-foreground' : 'text-foreground'}`}>{label}</Text>
-    </Pressable>
   );
 }

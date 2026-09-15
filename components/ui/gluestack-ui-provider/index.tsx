@@ -8,19 +8,22 @@ export type ModeType = 'light' | 'dark' | 'system';
 
 export function GluestackUIProvider({
   mode = 'dark',
+  manageTheme = true,
   ...props
 }: {
   mode?: ModeType;
+  manageTheme?: boolean;
   children?: React.ReactNode;
   style?: ViewProps['style'];
 }) {
   useEffect(() => {
+    if (!manageTheme) return;
     if (mode === 'system') {
       Uniwind.setTheme('system');
     } else {
       Uniwind.setTheme(mode);
     }
-  }, [mode]);
+  }, [manageTheme, mode]);
 
   return (
     <View style={[{ flex: 1, height: '100%', width: '100%' }, props.style]}>

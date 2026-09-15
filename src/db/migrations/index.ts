@@ -91,6 +91,22 @@ const migrations: Record<number, string> = {
     CREATE INDEX habit_logs_habit_date_idx ON habit_logs(habit_id, date);
     CREATE INDEX scheduled_notifications_fire_at_idx ON scheduled_notifications(fire_at);
   `,
+  2: `
+    ALTER TABLE deadlines ADD COLUMN urgent_before_minutes INTEGER NOT NULL DEFAULT 1440;
+    ALTER TABLE deadlines ADD COLUMN archived_at TEXT;
+    ALTER TABLE deadlines ADD COLUMN archive_reason TEXT;
+    ALTER TABLE habits ADD COLUMN archived_at TEXT;
+    ALTER TABLE habits ADD COLUMN archive_reason TEXT;
+
+    CREATE INDEX deadlines_archived_at_idx ON deadlines(archived_at);
+    CREATE INDEX habits_archived_at_idx ON habits(archived_at);
+  `,
+  3: `
+    SELECT 1;
+  `,
+  4: `
+    SELECT 1;
+  `,
 };
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
@@ -107,6 +123,12 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
     const nextVersion = currentVersion + 1;
     await runInTransaction(db, async (executor) => {
       await executor.execAsync(migrations[nextVersion]);
+      if (nextVersion === 3) {
+        const columns = await executor.getAllAsync<{ name: string }>('PRAGMA table_info(habit_logs)');
+        if (!columns.some((column) => column.name === 'previous_amount')) {
+          await executor.execAsync('ALTER TABLE habit_logs ADD COLUMN previous_amount REAL');
+        }
+      }
       if (nextVersion === 1) await seedFoundation(executor);
       await executor.execAsync(`PRAGMA user_version = ${nextVersion}`);
     });
@@ -122,7 +144,9 @@ async function runInTransaction(
   task: (executor: SQLiteDatabase) => Promise<void>,
 ): Promise<void> {
   if (Platform.OS === 'web') {
-    await db.withTransactionAsync(() => task(db));
+    await db.withTransactionAsync(async () => {
+      await task(db);
+    });
     return;
   }
   await db.withExclusiveTransactionAsync((transaction) => task(transaction));

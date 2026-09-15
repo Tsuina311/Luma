@@ -38,9 +38,12 @@ export const deadlineSchema = z.object({
   notes: z.string().trim().max(4000).optional(),
   dueAt: isoTimestampSchema,
   urgencyProfileId: z.string().min(1),
+  urgentBeforeMinutes: z.number().int().positive().max(525_600),
   createdAt: isoTimestampSchema,
   updatedAt: isoTimestampSchema,
   completedAt: isoTimestampSchema.optional(),
+  archivedAt: isoTimestampSchema.optional(),
+  archiveReason: z.enum(['deleted']).optional(),
 });
 
 export type Deadline = z.infer<typeof deadlineSchema>;
@@ -50,6 +53,7 @@ export const deadlineInputSchema = z.object({
   notes: z.string().trim().max(4000).optional(),
   dueAt: isoTimestampSchema,
   urgencyProfileId: z.string().min(1),
+  urgentBeforeMinutes: z.number().int().positive().max(525_600),
   reminderOffsets: z.array(z.union([z.literal(7), z.literal(3), z.literal(1), z.literal(0)])),
 });
 

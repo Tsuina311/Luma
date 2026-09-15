@@ -12,9 +12,11 @@ const useSafeLayoutEffect =
 
 export function GluestackUIProvider({
   mode = 'dark',
+  manageTheme = true,
   ...props
 }: {
   mode?: ModeType;
+  manageTheme?: boolean;
   children?: React.ReactNode;
 }) {
   const handleMediaQuery = React.useCallback(
@@ -27,26 +29,30 @@ export function GluestackUIProvider({
   );
 
   useSafeLayoutEffect(() => {
+    if (!manageTheme) return;
     if (mode === 'system') return;
     script(mode);
     Uniwind.setTheme(mode);
-  }, [mode]);
+  }, [manageTheme, mode]);
 
   useSafeLayoutEffect(() => {
+    if (!manageTheme) return;
     if (mode !== 'system') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     media.addListener(handleMediaQuery);
     return () => media.removeListener(handleMediaQuery);
-  }, [handleMediaQuery, mode]);
+  }, [handleMediaQuery, manageTheme, mode]);
 
   return (
     <>
-      <script
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{
-          __html: `(${script.toString()})('${mode}')`,
-        }}
-      />
+      {manageTheme ? (
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `(${script.toString()})('${mode}')`,
+          }}
+        />
+      ) : null}
       <OverlayProvider>
         <ToastProvider>{props.children}</ToastProvider>
       </OverlayProvider>

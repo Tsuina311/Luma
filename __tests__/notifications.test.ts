@@ -18,6 +18,7 @@ describe('notification planning', () => {
       title: 'Tax return',
       dueAt: addDays(now, 3).toISOString(),
       urgencyProfileId: 'normal',
+      urgentBeforeMinutes: 1440,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };

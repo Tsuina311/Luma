@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
 import { SettingsRepository, type Preferences } from '@/src/db/repositories/settingsRepository';
@@ -7,6 +6,7 @@ import type { UrgencyProfile } from '@/src/domain/deadlines/schemas';
 import { DeadlineForm } from '@/src/features/deadlines/DeadlineForm';
 import { ErrorState, LoadingState, Screen } from '@/src/components/ui';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
+import { dismissScreen } from '@/src/utils/navigation';
 
 export default function NewDeadlineScreen() {
   const db = useSQLiteContext();
@@ -26,8 +26,16 @@ export default function NewDeadlineScreen() {
 
   return (
     <Screen>
-      {!data && !error ? <LoadingState /> : error ? (
-        <ErrorState message="Urgency profiles could not be loaded." retry={() => { setError(false); setRequest((value) => value + 1); }} />
+      {!data && !error ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState
+          message="Urgency profiles could not be loaded."
+          retry={() => {
+            setError(false);
+            setRequest((value) => value + 1);
+          }}
+        />
       ) : (
         <DeadlineForm
           db={db}
@@ -35,7 +43,7 @@ export default function NewDeadlineScreen() {
           timeFormat={data?.preferences.timeFormat}
           onSaved={() => {
             refresh();
-            router.back();
+            dismissScreen();
           }}
         />
       )}

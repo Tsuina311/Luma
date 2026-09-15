@@ -1,52 +1,143 @@
-import { Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Platform, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SymbolView } from 'expo-symbols';
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import type { AttentionItem } from '@/src/domain/shared';
-import { Badge, BadgeText } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Pressable } from '@/components/ui/pressable';
+import { GrowthStem, TactilePressable } from '@/src/components/ui';
+import { useTheme } from '@/src/ui/theme';
 
 const urgencyLabel = {
-  red: 'Critical',
-  orange: 'Needs attention',
-  yellow: 'Upcoming',
-  green: 'On track',
+  red: 'Overdue',
+  orange: 'Needs care',
+  yellow: 'Approaching',
+  green: 'Comfortable',
 };
 
 const urgencyClasses = {
-  red: { rail: 'bg-urgency-red', signal: 'bg-urgency-red/10', text: 'text-urgency-red' },
-  orange: { rail: 'bg-urgency-orange', signal: 'bg-urgency-orange/10', text: 'text-urgency-orange' },
-  yellow: { rail: 'bg-urgency-yellow', signal: 'bg-urgency-yellow/10', text: 'text-urgency-yellow' },
-  green: { rail: 'bg-urgency-green', signal: 'bg-urgency-green/10', text: 'text-urgency-green' },
+  red: 'text-urgency-red-ink',
+  orange: 'text-urgency-orange-ink',
+  yellow: 'text-urgency-yellow-ink',
+  green: 'text-urgency-green-ink',
 };
 
-export function AttentionRow({ item, onPress }: { item: AttentionItem; onPress: () => void }) {
-  const colors = urgencyClasses[item.urgency];
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
+export function AttentionRow({
+  item,
+  onPress,
+  onComplete,
+}: {
+  item: AttentionItem;
+  onPress: () => void;
+  onComplete: () => void;
+}) {
+  const textColor = urgencyClasses[item.urgency];
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.title}. ${urgencyLabel[item.urgency]}. ${item.subtitle}`}
-      className="active:opacity-70"
-    >
-      <Card className="relative min-h-24 flex-row items-center gap-4 overflow-hidden rounded-3xl border-border bg-card px-4 py-4 shadow-sm">
-        <View className={`absolute bottom-0 left-0 top-0 w-1.5 ${colors.rail}`} />
-        <View className={`ml-1 h-12 w-12 items-center justify-center rounded-2xl ${colors.signal}`}>
-          <Text className={`text-base font-black ${colors.text}`}>{item.icon}</Text>
-        </View>
-        <View className="flex-1 gap-1.5">
-          <View className="flex-row items-center gap-2">
-            <Text className="flex-1 text-[17px] font-bold tracking-tight text-foreground" numberOfLines={2}>
-              {item.title}
-            </Text>
-            <Badge variant="secondary" className="rounded-full px-2.5 py-1">
-              <BadgeText className={`text-[10px] font-bold ${colors.text}`}>
-                {urgencyLabel[item.urgency]}
-              </BadgeText>
-            </Badge>
-          </View>
-          <Text className="text-sm font-medium text-muted-foreground">{item.subtitle}</Text>
-        </View>
-        <Text className="text-2xl font-light text-muted-foreground">›</Text>
-      </Card>
-    </Pressable>
+    <View className="relative min-h-[76px] flex-row items-center gap-3 overflow-hidden pl-5 pr-1">
+      <GrowthStem tone={item.urgency} />
+      <TactilePressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}. ${urgencyLabel[item.urgency]}. ${item.subtitle}`}
+        className="flex-1 justify-center gap-1.5 py-3"
+      >
+        <Text className={`text-[16px] font-semibold leading-5 ${textColor}`} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text className={`text-sm ${textColor} opacity-80`}>{item.subtitle}</Text>
+      </TactilePressable>
+      <CompleteButton onPress={onComplete} />
+    </View>
+  );
+}
+
+function CompleteButton({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  const shimmer = useSharedValue(0);
+  const blink = useSharedValue(0);
+
+  useEffect(() => {
+    shimmer.set(withRepeat(
+      withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    ));
+  }, [shimmer]);
+
+  const glowStyle = useAnimatedStyle(() => {
+    const soft = interpolate(shimmer.value, [0, 1], [10, 6]);
+    const opacity = interpolate(shimmer.value, [0, 1], [0.5, 0.28]);
+    if (Platform.OS === 'web') {
+      return {
+        boxShadow: `-2px -2px ${soft}px ${theme.shimmerGlow[0]}, 2px 2px ${soft}px ${theme.shimmerGlow[1]}`,
+      };
+    }
+    return {
+      shadowColor: theme.shimmer[0],
+      shadowOffset: { width: -2, height: -2 },
+      shadowOpacity: opacity,
+      shadowRadius: soft,
+      elevation: interpolate(shimmer.value, [0, 1], [6, 3]),
+    };
+  });
+
+  const gradientStyle = useAnimatedStyle(() => ({
+    transform: [{
+      translateX: interpolate(shimmer.value, [0, 1], [-18, 0]),
+    }],
+    opacity: interpolate(blink.value, [0, 1], [1, 0.35]),
+  }));
+
+  const flashStyle = useAnimatedStyle(() => ({
+    opacity: blink.value,
+  }));
+
+  return (
+    <Animated.View className="h-12 w-14 rounded-[11px]" style={glowStyle}>
+      <View className="h-full w-full overflow-hidden rounded-[11px]">
+        <AnimatedLinearGradient
+          colors={[...theme.shimmer]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          locations={[0, 0.3, 0.7, 1]}
+          style={[{ position: 'absolute', top: 0, bottom: 0, left: -18, width: 92 }, gradientStyle]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          className="absolute inset-0 rounded-[11px]"
+          style={[{ backgroundColor: theme.primaryFlash }, flashStyle]}
+        />
+        <TactilePressable
+          accessibilityRole="button"
+          accessibilityLabel="Complete item"
+          onPress={() => {
+            blink.set(withSequence(
+              withTiming(1, { duration: 130 }),
+              withTiming(0, { duration: 180 }, (finished) => {
+                if (finished) runOnJS(onPress)();
+              }),
+            ));
+          }}
+          className="h-full w-full items-center justify-center"
+        >
+          <SymbolView
+            name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+            tintColor={theme.primaryText}
+            size={25}
+            weight="bold"
+          />
+        </TactilePressable>
+      </View>
+    </Animated.View>
   );
 }

@@ -1,17 +1,18 @@
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Card } from '@/components/ui/card';
 import { HabitRepository } from '@/src/db/repositories/habitRepository';
 import { SettingsRepository } from '@/src/db/repositories/settingsRepository';
 import { calculateHabitReliability } from '@/src/domain/habits/logic';
 import type { Habit, HabitLog } from '@/src/domain/habits/schemas';
 import type { WeekStart } from '@/src/utils/dates';
 import { HabitForm } from '@/src/features/habits/HabitForm';
-import { Button, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
+import { Button, ErrorState, GroupSurface, LoadingState, Screen, SectionHeader } from '@/src/components/ui';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { reconcileNotifications } from '@/src/services/notifications';
+import { destructiveFeedback } from '@/src/ui/feedback';
+import { dismissScreen } from '@/src/utils/navigation';
 
 type ViewData = {
   habit: Habit;
@@ -61,15 +62,16 @@ export default function HabitDetailScreen() {
 
   const confirmDelete = () => {
     if (!data) return;
-    Alert.alert('Delete habit?', 'Its completion history will also be deleted. This cannot be undone.', [
+    Alert.alert('Move habit to bin?', 'Its completion history stays available if you restore it later.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Move to bin',
         style: 'destructive',
         onPress: () => {
+          destructiveFeedback();
           void new HabitRepository(db).delete(data.habit.id).then(() => {
             refresh();
-            router.back();
+            dismissScreen();
             void reconcileNotifications(db).catch(() => undefined);
           }).catch(() => setError('The habit could not be deleted.'));
         },
@@ -87,25 +89,31 @@ export default function HabitDetailScreen() {
         <ErrorState message={error} retry={() => { setError(undefined); setRequest((value) => value + 1); }} />
       ) : data && metrics ? (
         <>
-          <Card className="flex-row rounded-3xl border-border bg-card p-5 shadow-sm">
+          <GroupSurface className="flex-row py-4">
             <Metric label="This week" value={`${metrics.completed} / ${metrics.expected}`} />
             <Metric label="Reliability" value={`${metrics.reliability}%`} />
             <Metric label="Best streak" value={String(metrics.bestStreak)} />
-          </Card>
-          <Button variant="secondary" onPress={() => void toggleActive()}>
-            {data.habit.active ? 'Pause habit' : 'Resume habit'}
-          </Button>
-          <SectionTitle>Edit habit</SectionTitle>
+          </GroupSurface>
+          <View className="self-start">
+            <Button size="compact" variant="secondary" onPress={() => void toggleActive()}>
+              {data.habit.active ? 'Pause habit' : 'Resume habit'}
+            </Button>
+          </View>
+          <SectionHeader>Edit habit</SectionHeader>
           <HabitForm
             db={db}
             initial={data.habit}
             timeFormat={data.timeFormat}
             onSaved={() => {
               refresh();
-              router.back();
+              dismissScreen();
             }}
           />
-          <Button variant="danger" onPress={confirmDelete}>Delete habit</Button>
+          <View className="mt-2 border-t border-border pt-4">
+            <View className="self-start">
+              <Button size="compact" variant="danger" onPress={confirmDelete}>Move to bin</Button>
+            </View>
+          </View>
         </>
       ) : null}
     </Screen>
@@ -115,7 +123,7 @@ export default function HabitDetailScreen() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-1 gap-1">
-      <Text className="text-xl font-extrabold text-foreground">{value}</Text>
+      <Text className="text-lg font-semibold text-foreground">{value}</Text>
       <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
     </View>
   );

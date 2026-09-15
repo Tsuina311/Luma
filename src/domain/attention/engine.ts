@@ -1,14 +1,13 @@
 import type { AttentionItem } from '@/src/domain/shared';
 import { urgencyWeight } from '@/src/domain/shared';
 import { calculateDeadlineUrgency, getTimeRemaining } from '@/src/domain/deadlines/logic';
-import type { Deadline, UrgencyProfile } from '@/src/domain/deadlines/schemas';
+import type { Deadline } from '@/src/domain/deadlines/schemas';
 import { getHabitStatusForDate } from '@/src/domain/habits/logic';
 import type { Habit, HabitLog } from '@/src/domain/habits/schemas';
 import { combineLocalDateAndTime, toLocalDateKey, type WeekStart } from '@/src/utils/dates';
 
 export type AttentionInput = {
   deadlines: Deadline[];
-  profiles: UrgencyProfile[];
   habits: Habit[];
   habitLogs: HabitLog[];
   weekStartsOn?: WeekStart;
@@ -22,15 +21,10 @@ const urgencyIcon = {
 } as const;
 
 export function getAttentionItems(input: AttentionInput, now = new Date()): AttentionItem[] {
-  const profileById = new Map(input.profiles.map((profile) => [profile.id, profile]));
-  const fallbackProfile = input.profiles.find((profile) => profile.isDefault) ?? input.profiles[0];
-
   const deadlineItems = input.deadlines
     .filter((deadline) => !deadline.completedAt)
     .flatMap((deadline): AttentionItem[] => {
-      const profile = profileById.get(deadline.urgencyProfileId) ?? fallbackProfile;
-      if (!profile) return [];
-      const urgency = calculateDeadlineUrgency(deadline, profile, now);
+      const urgency = calculateDeadlineUrgency(deadline, now);
       return [{
         id: `deadline:${deadline.id}`,
         sourceId: deadline.id,

@@ -19,9 +19,12 @@ type DeadlineRow = {
   notes: string | null;
   due_at: string;
   urgency_profile_id: string;
+  urgent_before_minutes: number;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  archived_at: string | null;
+  archive_reason: 'deleted' | null;
 };
 
 type ProfileRow = {
@@ -48,21 +51,23 @@ export class DeadlineRepository {
 
   async listAll(): Promise<Deadline[]> {
     const rows = await this.db.getAllAsync<DeadlineRow>(
-      'SELECT * FROM deadlines ORDER BY completed_at IS NOT NULL, due_at ASC',
+      'SELECT * FROM deadlines WHERE archived_at IS NULL ORDER BY completed_at IS NOT NULL, due_at ASC',
     );
     return rows.map(mapDeadline);
   }
 
   async listActive(): Promise<Deadline[]> {
     const rows = await this.db.getAllAsync<DeadlineRow>(
-      'SELECT * FROM deadlines WHERE completed_at IS NULL ORDER BY due_at ASC',
+      'SELECT * FROM deadlines WHERE completed_at IS NULL AND archived_at IS NULL ORDER BY due_at ASC',
     );
     return rows.map(mapDeadline);
   }
 
   async listCompleted(limit = 5): Promise<Deadline[]> {
     const rows = await this.db.getAllAsync<DeadlineRow>(
-      'SELECT * FROM deadlines WHERE completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT ?',
+      `SELECT * FROM deadlines
+       WHERE completed_at IS NOT NULL AND archived_at IS NULL
+       ORDER BY completed_at DESC LIMIT ?`,
       limit,
     );
     return rows.map(mapDeadline);
@@ -71,6 +76,15 @@ export class DeadlineRepository {
   async getById(id: string): Promise<Deadline | null> {
     const row = await this.db.getFirstAsync<DeadlineRow>('SELECT * FROM deadlines WHERE id = ?', id);
     return row ? mapDeadline(row) : null;
+  }
+
+  async listBin(): Promise<Deadline[]> {
+    const rows = await this.db.getAllAsync<DeadlineRow>(
+      `SELECT * FROM deadlines
+       WHERE completed_at IS NOT NULL OR archived_at IS NOT NULL
+       ORDER BY COALESCE(archived_at, completed_at) DESC`,
+    );
+    return rows.map(mapDeadline);
   }
 
   async listProfiles(): Promise<UrgencyProfile[]> {
@@ -145,25 +159,28 @@ export class DeadlineRepository {
       if (id) {
         await this.db.runAsync(
           `UPDATE deadlines
-           SET title = ?, notes = ?, due_at = ?, urgency_profile_id = ?, updated_at = ?
+           SET title = ?, notes = ?, due_at = ?, urgency_profile_id = ?,
+               urgent_before_minutes = ?, updated_at = ?
            WHERE id = ?`,
           parsed.title,
           parsed.notes ?? null,
           parsed.dueAt,
           parsed.urgencyProfileId,
+          parsed.urgentBeforeMinutes,
           now,
           id,
         );
       } else {
         await this.db.runAsync(
           `INSERT INTO deadlines
-            (id, title, notes, due_at, urgency_profile_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (id, title, notes, due_at, urgency_profile_id, urgent_before_minutes, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           deadlineId,
           parsed.title,
           parsed.notes ?? null,
           parsed.dueAt,
           parsed.urgencyProfileId,
+          parsed.urgentBeforeMinutes,
           now,
           now,
         );
@@ -196,7 +213,25 @@ export class DeadlineRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.runAsync('DELETE FROM deadlines WHERE id = ?', id);
+    const now = new Date().toISOString();
+    await this.db.runAsync(
+      `UPDATE deadlines
+       SET archived_at = ?, archive_reason = 'deleted', updated_at = ?
+       WHERE id = ?`,
+      now,
+      now,
+      id,
+    );
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.db.runAsync(
+      `UPDATE deadlines
+       SET completed_at = NULL, archived_at = NULL, archive_reason = NULL, updated_at = ?
+       WHERE id = ?`,
+      new Date().toISOString(),
+      id,
+    );
   }
 }
 
@@ -207,9 +242,12 @@ function mapDeadline(row: DeadlineRow): Deadline {
     notes: row.notes ?? undefined,
     dueAt: row.due_at,
     urgencyProfileId: row.urgency_profile_id,
+    urgentBeforeMinutes: row.urgent_before_minutes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at ?? undefined,
+    archivedAt: row.archived_at ?? undefined,
+    archiveReason: row.archive_reason ?? undefined,
   });
 }
 

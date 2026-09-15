@@ -4,43 +4,235 @@
 @layer theme {
   :root {
     @variant light {
-      --primary: 101 83 242;
-      --primary-foreground: 255 255 255;
-      --card: 255 255 255;
-      --secondary: 239 236 255;
-      --secondary-foreground: 69 52 186;
-      --background: 248 247 252;
-      --popover: 255 255 255;
-      --popover-foreground: 31 27 48;
-      --muted: 243 241 248;
-      --muted-foreground: 109 104 127;
-      --destructive: 207 61 79;
-      --foreground: 31 27 48;
-      --border: 229 226 238;
-      --input: 221 217 233;
-      --ring: 101 83 242;
-      --accent: 243 240 255;
-      --accent-foreground: 69 52 186;
+      --primary: 20 177 85;
+      --primary-foreground: 6 38 19;
+      --card: 255 253 247;
+      --secondary: 238 240 226;
+      --secondary-foreground: 44 74 52;
+      --background: 249 247 236;
+      --popover: 255 253 247;
+      --popover-foreground: 41 49 41;
+      --muted: 238 238 224;
+      --muted-foreground: 108 118 106;
+      --destructive: 198 76 60;
+      --foreground: 41 49 41;
+      --border: 221 219 199;
+      --input: 209 208 186;
+      --ring: 20 177 85;
+      --accent: 216 247 222;
+      --accent-foreground: 16 118 58;
+      --sunlight: 253 240 186;
+      --urgency-green: 26 194 98;
+      --urgency-yellow: 226 186 36;
+      --urgency-orange: 243 145 38;
+      --urgency-red: 227 82 62;
+      --urgency-green-ink: 18 122 61;
+      --urgency-yellow-ink: 138 104 12;
+      --urgency-orange-ink: 168 89 18;
+      --urgency-red-ink: 174 51 38;
     }
 
     @variant dark {
-      --primary: 158 143 255;
-      --primary-foreground: 21 17 43;
-      --card: 25 23 36;
-      --secondary: 45 39 76;
-      --secondary-foreground: 224 218 255;
-      --background: 14 13 21;
-      --popover: 25 23 36;
-      --popover-foreground: 246 243 255;
-      --muted: 34 31 46;
-      --muted-foreground: 165 159 181;
-      --destructive: 255 112 128;
-      --foreground: 246 243 255;
-      --border: 52 48 68;
-      --input: 61 56 78;
-      --ring: 158 143 255;
-      --accent: 42 36 70;
-      --accent-foreground: 224 218 255;
+      --primary: 68 235 135;
+      --primary-foreground: 5 34 16;
+      --card: 30 40 32;
+      --secondary: 42 55 45;
+      --secondary-foreground: 226 240 226;
+      --background: 20 28 22;
+      --popover: 30 40 32;
+      --popover-foreground: 239 241 233;
+      --muted: 36 47 38;
+      --muted-foreground: 160 174 160;
+      --destructive: 235 118 100;
+      --foreground: 239 241 233;
+      --border: 55 70 58;
+      --input: 64 80 67;
+      --ring: 68 235 135;
+      --accent: 40 70 48;
+      --accent-foreground: 145 240 175;
+      --sunlight: 96 84 44;
+      --urgency-green: 90 235 135;
+      --urgency-yellow: 231 202 82;
+      --urgency-orange: 244 160 72;
+      --urgency-red: 244 122 104;
+      --urgency-green-ink: 110 228 148;
+      --urgency-yellow-ink: 235 210 104;
+      --urgency-orange-ink: 246 172 96;
+      --urgency-red-ink: 246 140 124;
+    }
+
+    @variant green-light {
+      --primary: 20 177 85;
+      --primary-foreground: 6 38 19;
+      --card: 255 253 247;
+      --secondary: 238 240 226;
+      --secondary-foreground: 44 74 52;
+      --background: 238 250 232;
+      --popover: 255 253 247;
+      --popover-foreground: 41 49 41;
+      --muted: 228 241 220;
+      --muted-foreground: 99 117 98;
+      --destructive: 198 76 60;
+      --foreground: 41 49 41;
+      --border: 203 224 195;
+      --input: 191 214 183;
+      --ring: 20 177 85;
+      --accent: 216 247 222;
+      --accent-foreground: 16 118 58;
+      --sunlight: 253 240 186;
+      --urgency-green: 26 194 98;
+      --urgency-yellow: 226 186 36;
+      --urgency-orange: 243 145 38;
+      --urgency-red: 227 82 62;
+      --urgency-green-ink: 18 122 61;
+      --urgency-yellow-ink: 138 104 12;
+      --urgency-orange-ink: 168 89 18;
+      --urgency-red-ink: 174 51 38;
+    }
+
+    @variant green-dark {
+      --primary: 68 235 135;
+      --primary-foreground: 5 34 16;
+      --card: 30 40 32;
+      --secondary: 42 55 45;
+      --secondary-foreground: 226 240 226;
+      --background: 20 28 22;
+      --popover: 30 40 32;
+      --popover-foreground: 239 241 233;
+      --muted: 36 47 38;
+      --muted-foreground: 160 174 160;
+      --destructive: 235 118 100;
+      --foreground: 239 241 233;
+      --border: 55 70 58;
+      --input: 64 80 67;
+      --ring: 68 235 135;
+      --accent: 40 70 48;
+      --accent-foreground: 145 240 175;
+      --sunlight: 96 84 44;
+      --urgency-green: 90 235 135;
+      --urgency-yellow: 231 202 82;
+      --urgency-orange: 244 160 72;
+      --urgency-red: 244 122 104;
+      --urgency-green-ink: 110 228 148;
+      --urgency-yellow-ink: 235 210 104;
+      --urgency-orange-ink: 246 172 96;
+      --urgency-red-ink: 246 140 124;
+    }
+
+    @variant yellow-light {
+      --primary: 240 185 27;
+      --primary-foreground: 48 34 0;
+      --card: 255 254 244;
+      --secondary: 248 239 193;
+      --secondary-foreground: 94 72 14;
+      --background: 255 248 222;
+      --popover: 255 254 244;
+      --popover-foreground: 51 46 30;
+      --muted: 247 239 203;
+      --muted-foreground: 118 111 88;
+      --destructive: 198 76 60;
+      --foreground: 51 46 30;
+      --border: 230 217 163;
+      --input: 218 202 136;
+      --ring: 240 185 27;
+      --accent: 255 238 156;
+      --accent-foreground: 130 92 0;
+      --sunlight: 255 229 138;
+      --urgency-green: 26 194 98;
+      --urgency-yellow: 226 186 36;
+      --urgency-orange: 243 145 38;
+      --urgency-red: 227 82 62;
+      --urgency-green-ink: 18 122 61;
+      --urgency-yellow-ink: 138 104 12;
+      --urgency-orange-ink: 168 89 18;
+      --urgency-red-ink: 174 51 38;
+    }
+
+    @variant yellow-dark {
+      --primary: 244 199 53;
+      --primary-foreground: 48 37 0;
+      --card: 43 37 20;
+      --secondary: 57 48 24;
+      --secondary-foreground: 245 236 202;
+      --background: 33 28 14;
+      --popover: 43 37 20;
+      --popover-foreground: 245 240 220;
+      --muted: 51 43 22;
+      --muted-foreground: 183 173 136;
+      --destructive: 235 118 100;
+      --foreground: 245 240 220;
+      --border: 85 74 40;
+      --input: 99 85 45;
+      --ring: 244 199 53;
+      --accent: 78 63 24;
+      --accent-foreground: 250 221 112;
+      --sunlight: 107 88 30;
+      --urgency-green: 90 235 135;
+      --urgency-yellow: 231 202 82;
+      --urgency-orange: 244 160 72;
+      --urgency-red: 244 122 104;
+      --urgency-green-ink: 110 228 148;
+      --urgency-yellow-ink: 235 210 104;
+      --urgency-orange-ink: 246 172 96;
+      --urgency-red-ink: 246 140 124;
+    }
+
+    @variant red-light {
+      --primary: 240 100 73;
+      --primary-foreground: 54 17 10;
+      --card: 255 249 245;
+      --secondary: 249 221 212;
+      --secondary-foreground: 135 59 45;
+      --background: 255 240 233;
+      --popover: 255 249 245;
+      --popover-foreground: 57 41 37;
+      --muted: 248 224 216;
+      --muted-foreground: 123 102 95;
+      --destructive: 198 76 60;
+      --foreground: 57 41 37;
+      --border: 233 201 188;
+      --input: 220 184 170;
+      --ring: 240 100 73;
+      --accent: 255 224 214;
+      --accent-foreground: 175 61 44;
+      --sunlight: 255 214 163;
+      --urgency-green: 26 194 98;
+      --urgency-yellow: 226 186 36;
+      --urgency-orange: 243 145 38;
+      --urgency-red: 227 82 62;
+      --urgency-green-ink: 18 122 61;
+      --urgency-yellow-ink: 138 104 12;
+      --urgency-orange-ink: 168 89 18;
+      --urgency-red-ink: 174 51 38;
+    }
+
+    @variant red-dark {
+      --primary: 244 122 97;
+      --primary-foreground: 53 16 10;
+      --card: 44 28 25;
+      --secondary: 58 35 31;
+      --secondary-foreground: 247 230 224;
+      --background: 33 20 18;
+      --popover: 44 28 25;
+      --popover-foreground: 247 235 231;
+      --muted: 52 32 28;
+      --muted-foreground: 190 163 156;
+      --destructive: 244 122 104;
+      --foreground: 247 235 231;
+      --border: 90 57 50;
+      --input: 104 65 56;
+      --ring: 244 122 97;
+      --accent: 81 42 34;
+      --accent-foreground: 255 178 159;
+      --sunlight: 106 62 39;
+      --urgency-green: 90 235 135;
+      --urgency-yellow: 231 202 82;
+      --urgency-orange: 244 160 72;
+      --urgency-red: 244 122 104;
+      --urgency-green-ink: 110 228 148;
+      --urgency-yellow-ink: 235 210 104;
+      --urgency-orange-ink: 246 172 96;
+      --urgency-red-ink: 246 140 124;
     }
   }
 }
@@ -63,8 +255,21 @@
   --color-ring: rgb(var(--ring));
   --color-accent: rgb(var(--accent));
   --color-accent-foreground: rgb(var(--accent-foreground));
-  --color-urgency-red: #e45868;
-  --color-urgency-orange: #e58b3d;
-  --color-urgency-yellow: #c8a43d;
-  --color-urgency-green: #48a47a;
+  --color-sunlight: rgb(var(--sunlight));
+  --color-urgency-red: rgb(var(--urgency-red));
+  --color-urgency-orange: rgb(var(--urgency-orange));
+  --color-urgency-yellow: rgb(var(--urgency-yellow));
+  --color-urgency-green: rgb(var(--urgency-green));
+  --color-urgency-red-ink: rgb(var(--urgency-red-ink));
+  --color-urgency-orange-ink: rgb(var(--urgency-orange-ink));
+  --color-urgency-yellow-ink: rgb(var(--urgency-yellow-ink));
+  --color-urgency-green-ink: rgb(var(--urgency-green-ink));
+}
+
+/* Match the themed canvas behind transparent bloom PNGs. */
+html,
+body,
+#root {
+  background: rgb(var(--background)) !important;
+  min-height: 100%;
 }

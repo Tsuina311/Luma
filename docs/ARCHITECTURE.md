@@ -36,7 +36,7 @@ Gluestack UI v5 provides accessible, composable primitives for controls, inputs,
 
 `SQLiteProvider` opens `luma.db`. Initialization enables WAL and foreign keys before applying numbered migrations inside exclusive transactions. `PRAGMA user_version` records the installed schema version. Migrations only move forward and never recreate user tables destructively.
 
-Schema version 1:
+Current schema (migrations 1–3):
 
 ```text
 urgency_profiles
@@ -51,7 +51,9 @@ deadlines
   title, notes
   due_at
   urgency_profile_id FK -> urgency_profiles
+  urgent_before_minutes
   created_at, updated_at, completed_at
+  archived_at, archive_reason
 
 deadline_notification_rules
   id PK
@@ -65,11 +67,12 @@ habits
   recurrence_type, recurrence_config
   target_type, target_value, unit
   active, created_at, updated_at
+  archived_at, archive_reason
 
 habit_logs
   id PK
   habit_id FK -> habits ON DELETE CASCADE
-  date, amount, completed
+  date, amount, previous_amount, completed
   created_at, updated_at
   UNIQUE(habit_id, date)
 
@@ -89,7 +92,7 @@ settings
   value_json, updated_at
 ```
 
-Structured JSON is parsed through Zod at repository boundaries. SQL values are parameterized. The migration seeds one `Normal` profile with boundaries of 30, 14, and 5 days and minimal preferences.
+Structured JSON is parsed through Zod at repository boundaries. SQL values are parameterized. Each deadline stores its own urgency-window duration in minutes. Archived records use soft deletion so the Bin can restore them; habit logs retain the amount from before completion for the same reason.
 
 ## Date and timezone strategy
 
@@ -108,7 +111,7 @@ This policy deliberately does not attempt to infer a permanent “home timezone.
 1. ignore completed deadlines and inactive/completed habit obligations;
 2. calculate each source object's status in its own domain;
 3. map it into the small shared `AttentionItem` presentation type;
-4. sort overdue/critical and red first, then orange, yellow, and green;
+4. sort overdue red items first, then orange habit obligations, yellow urgency-window items, and green items;
 5. within one tier, sort by nearest actionable time and then title.
 
 The Attention screen calls `loadAttentionItems`; it does not query every domain independently or duplicate ranking logic.
@@ -132,7 +135,7 @@ The anti-snooze rule is product-level: a user completes an item, consciously cha
 
 ## Error and privacy posture
 
-Migrations fail visibly through the route error boundary. Screens show recoverable loading/error states, forms retain data on save errors, and destructive deletes require native confirmation.
+Migrations fail visibly through the route error boundary. Screens show recoverable loading/error states, forms retain data on save errors, and moving an item to the restorable Bin requires native confirmation.
 
 Notification payloads contain only a source type, local identifier, and route. No data leaves the device. Logs avoid printing titles, notes, or completion history.
 

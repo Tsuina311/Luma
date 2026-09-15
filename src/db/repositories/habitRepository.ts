@@ -24,6 +24,8 @@ type HabitRow = {
   created_at: string;
   updated_at: string;
   reminder_time: string | null;
+  archived_at: string | null;
+  archive_reason: 'deleted' | null;
 };
 
 type LogRow = {
@@ -31,6 +33,7 @@ type LogRow = {
   habit_id: string;
   date: string;
   amount: number;
+  previous_amount: number | null;
   completed: number;
   created_at: string;
   updated_at: string;
@@ -40,12 +43,23 @@ export class HabitRepository {
   constructor(private readonly db: SQLiteDatabase) {}
 
   async listActive(): Promise<Habit[]> {
-    const rows = await this.db.getAllAsync<HabitRow>(habitSelect('WHERE h.active = 1 ORDER BY h.created_at ASC'));
+    const rows = await this.db.getAllAsync<HabitRow>(
+      habitSelect('WHERE h.active = 1 AND h.archived_at IS NULL ORDER BY h.created_at ASC'),
+    );
     return rows.map(mapHabit);
   }
 
   async listAll(): Promise<Habit[]> {
-    const rows = await this.db.getAllAsync<HabitRow>(habitSelect('ORDER BY h.active DESC, h.created_at ASC'));
+    const rows = await this.db.getAllAsync<HabitRow>(
+      habitSelect('WHERE h.archived_at IS NULL ORDER BY h.active DESC, h.created_at ASC'),
+    );
+    return rows.map(mapHabit);
+  }
+
+  async listArchived(): Promise<Habit[]> {
+    const rows = await this.db.getAllAsync<HabitRow>(
+      habitSelect('WHERE h.archived_at IS NOT NULL ORDER BY h.archived_at DESC'),
+    );
     return rows.map(mapHabit);
   }
 
@@ -137,7 +151,16 @@ export class HabitRepository {
 
     if (existing) {
       await this.db.runAsync(
-        'UPDATE habit_logs SET amount = ?, completed = ?, updated_at = ? WHERE id = ?',
+        `UPDATE habit_logs
+         SET previous_amount = CASE
+               WHEN completed = 0 AND ? = 1 THEN amount
+               WHEN ? = 0 THEN NULL
+               ELSE previous_amount
+             END,
+             amount = ?, completed = ?, updated_at = ?
+         WHERE id = ?`,
+        completed ? 1 : 0,
+        completed ? 1 : 0,
         safeAmount,
         completed ? 1 : 0,
         now,
@@ -146,12 +169,13 @@ export class HabitRepository {
     } else {
       await this.db.runAsync(
         `INSERT INTO habit_logs
-          (id, habit_id, date, amount, completed, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          (id, habit_id, date, amount, previous_amount, completed, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         Crypto.randomUUID(),
         habit.id,
         date,
         safeAmount,
+        completed ? 0 : null,
         completed ? 1 : 0,
         now,
         now,
@@ -176,7 +200,25 @@ export class HabitRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.runAsync('DELETE FROM habits WHERE id = ?', id);
+    const now = new Date().toISOString();
+    await this.db.runAsync(
+      `UPDATE habits
+       SET archived_at = ?, archive_reason = 'deleted', active = 0, updated_at = ?
+       WHERE id = ?`,
+      now,
+      now,
+      id,
+    );
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.db.runAsync(
+      `UPDATE habits
+       SET archived_at = NULL, archive_reason = NULL, active = 1, updated_at = ?
+       WHERE id = ?`,
+      new Date().toISOString(),
+      id,
+    );
   }
 }
 
@@ -202,6 +244,8 @@ function mapHabit(row: HabitRow): Habit {
     active: Boolean(row.active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    archivedAt: row.archived_at ?? undefined,
+    archiveReason: row.archive_reason ?? undefined,
   });
 }
 
@@ -211,6 +255,7 @@ function mapLog(row: LogRow): HabitLog {
     habitId: row.habit_id,
     date: row.date,
     amount: row.amount,
+    previousAmount: row.previous_amount ?? undefined,
     completed: Boolean(row.completed),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

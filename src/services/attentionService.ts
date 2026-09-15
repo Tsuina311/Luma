@@ -8,10 +8,8 @@ export async function loadAttentionOverview(db: SQLiteDatabase, now = new Date()
   const deadlines = new DeadlineRepository(db);
   const habits = new HabitRepository(db);
   const settings = new SettingsRepository(db);
-  const [activeDeadlines, completedDeadlines, profiles, activeHabits, logs, preferences] = await Promise.all([
+  const [activeDeadlines, activeHabits, logs, preferences] = await Promise.all([
     deadlines.listActive(),
-    deadlines.listCompleted(),
-    deadlines.listProfiles(),
     habits.listActive(),
     habits.listLogs(),
     settings.getPreferences(),
@@ -19,11 +17,9 @@ export async function loadAttentionOverview(db: SQLiteDatabase, now = new Date()
   return {
     items: getAttentionItems({
       deadlines: activeDeadlines,
-      profiles,
       habits: activeHabits,
       habitLogs: logs,
       weekStartsOn: preferences.weekStartsOn,
     }, now),
-    completedDeadlines,
   };
 }

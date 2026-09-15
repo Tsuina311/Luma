@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Card } from '@/components/ui/card';
 import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
 import { SettingsRepository, type Preferences } from '@/src/db/repositories/settingsRepository';
 import type {
@@ -12,9 +11,11 @@ import type {
 } from '@/src/domain/deadlines/schemas';
 import { getTimeRemaining } from '@/src/domain/deadlines/logic';
 import { DeadlineForm } from '@/src/features/deadlines/DeadlineForm';
-import { Button, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
+import { Button, ErrorState, GroupSurface, LoadingState, Screen, SectionHeader } from '@/src/components/ui';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { reconcileNotifications } from '@/src/services/notifications';
+import { completionFeedback, destructiveFeedback } from '@/src/ui/feedback';
+import { dismissScreen } from '@/src/utils/navigation';
 
 type ViewData = {
   deadline: Deadline;
@@ -56,6 +57,7 @@ export default function DeadlineDetailScreen() {
     try {
       const repository = new DeadlineRepository(db);
       await repository.setCompleted(data.deadline.id, !data.deadline.completedAt);
+      if (!data.deadline.completedAt) completionFeedback();
       refresh();
       setRequest((value) => value + 1);
       void reconcileNotifications(db).catch(() => undefined);
@@ -66,15 +68,16 @@ export default function DeadlineDetailScreen() {
 
   const confirmDelete = () => {
     if (!data) return;
-    Alert.alert('Delete deadline?', 'This cannot be undone.', [
+    Alert.alert('Move deadline to bin?', 'You can restore it later from the Bin tab.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Move to bin',
         style: 'destructive',
         onPress: () => {
+          destructiveFeedback();
           void new DeadlineRepository(db).delete(data.deadline.id).then(() => {
             refresh();
-            router.back();
+            dismissScreen();
             void reconcileNotifications(db).catch(() => undefined);
           }).catch(() => setError('The deadline could not be deleted.'));
         },
@@ -88,20 +91,26 @@ export default function DeadlineDetailScreen() {
         <ErrorState message={error} retry={() => { setError(undefined); setRequest((value) => value + 1); }} />
       ) : data ? (
         <>
-          <Card className="gap-4 rounded-3xl border-border bg-card p-5 shadow-sm">
+          <GroupSurface className="flex-row items-center gap-4 py-3">
             <View className="gap-1.5">
-              <Text className="text-xl font-extrabold text-foreground">
+              <Text className="text-lg font-semibold text-foreground">
                 {data.deadline.completedAt ? 'Completed' : getTimeRemaining(data.deadline.dueAt)}
               </Text>
-              <Text className="text-sm leading-5 text-muted-foreground">
-                {data.deadline.completedAt ? 'This item is out of your attention feed.' : 'Keep it visible until it is done or consciously rescheduled.'}
-              </Text>
+              {data.deadline.completedAt ? (
+                <Text className="text-sm text-muted-foreground">Removed from Attention</Text>
+              ) : null}
             </View>
-            <Button variant={data.deadline.completedAt ? 'secondary' : 'primary'} onPress={() => void toggleCompleted()}>
-              {data.deadline.completedAt ? 'Reopen' : 'Mark done'}
-            </Button>
-          </Card>
-          <SectionTitle>Edit deadline</SectionTitle>
+            <View className="ml-auto">
+              <Button
+                size="compact"
+                variant={data.deadline.completedAt ? 'secondary' : 'primary'}
+                onPress={() => void toggleCompleted()}
+              >
+                {data.deadline.completedAt ? 'Reopen' : 'Mark done'}
+              </Button>
+            </View>
+          </GroupSurface>
+          <SectionHeader>Edit deadline</SectionHeader>
           <DeadlineForm
             db={db}
             profiles={data.profiles}
@@ -110,10 +119,14 @@ export default function DeadlineDetailScreen() {
             timeFormat={data.preferences.timeFormat}
             onSaved={() => {
               refresh();
-              router.back();
+              dismissScreen();
             }}
           />
-          <Button variant="danger" onPress={confirmDelete}>Delete deadline</Button>
+          <View className="mt-2 border-t border-border pt-4">
+            <View className="self-start">
+              <Button size="compact" variant="danger" onPress={confirmDelete}>Move to bin</Button>
+            </View>
+          </View>
         </>
       ) : null}
     </Screen>

@@ -1,101 +1,168 @@
-import { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { AttentionRow } from '@/src/components/AttentionRow';
+import {
+  ErrorState,
+  GroupSurface,
+  LoadingState,
+  Screen,
+} from '@/src/components/ui';
+import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
+import { HabitRepository } from '@/src/db/repositories/habitRepository';
+import type { AttentionItem } from '@/src/domain/shared';
+import { useDataRefresh } from '@/src/hooks/useDataRefresh';
+import { loadAttentionOverview } from '@/src/services/attentionService';
+import { reconcileNotifications } from '@/src/services/notifications';
+import { completionFeedback, selectionFeedback } from '@/src/ui/feedback';
+import { toLocalDateKey } from '@/src/utils/dates';
+import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Card } from '@/components/ui/card';
-import type { AttentionItem } from '@/src/domain/shared';
-import type { Deadline } from '@/src/domain/deadlines/schemas';
-import { loadAttentionOverview } from '@/src/services/attentionService';
-import { useDataRefresh } from '@/src/hooks/useDataRefresh';
-import { AttentionRow } from '@/src/components/AttentionRow';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, SectionTitle } from '@/src/components/ui';
+import { useCallback, useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  FadeOut,
+  LinearTransition,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function AddDeadlineButton() {
+  const scale = useSharedValue(1);
+  const busy = useRef(false);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const release = useCallback(() => {
+    busy.current = false;
+  }, []);
+
+  const onPress = () => {
+    if (busy.current) return;
+    busy.current = true;
+    selectionFeedback();
+    router.push('/deadline/new');
+    const timing = { duration: 400, easing: Easing.inOut(Easing.quad) };
+    scale.value = withSequence(
+      withTiming(0.82, timing),
+      withTiming(1, timing, (finished) => {
+        if (finished) runOnJS(release)();
+      }),
+    );
+  };
+
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityLabel="Add deadline"
+      onPress={onPress}
+      className="h-[50px] w-[50px] items-center justify-center"
+      style={style}
+    >
+      <Image
+        source={require('@/assets/images/shovel.png')}
+        style={{ width: 50, height: 50 }}
+        contentFit="contain"
+      />
+    </AnimatedPressable>
+  );
+}
 
 export default function AttentionScreen() {
   const db = useSQLiteContext();
-  const { revision } = useDataRefresh();
+  const { revision, refresh } = useDataRefresh();
   const [items, setItems] = useState<AttentionItem[]>([]);
-  const [completedDeadlines, setCompletedDeadlines] = useState<Deadline[]>([]);
+  const itemsRef = useRef(items);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [request, setRequest] = useState(0);
 
-  useFocusEffect(useCallback(() => {
-    void revision;
-    void request;
-    let active = true;
-    setLoading(true);
-    loadAttentionOverview(db)
-      .then((overview) => {
-        if (active) {
+  itemsRef.current = items;
+
+  useFocusEffect(
+    useCallback(() => {
+      void revision;
+      void request;
+      let active = true;
+      setLoading((current) => (itemsRef.current.length === 0 ? true : current));
+      loadAttentionOverview(db)
+        .then((overview) => {
+          if (!active) return;
           setItems(overview.items);
-          setCompletedDeadlines(overview.completedDeadlines);
           setError(undefined);
-        }
-      })
-      .catch(() => active && setError('Your attention list could not be loaded.'))
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, [db, revision, request]));
+        })
+        .catch(() => active && setError('Your attention list could not be loaded.'))
+        .finally(() => active && setLoading(false));
+      return () => {
+        active = false;
+      };
+    }, [db, revision, request]),
+  );
 
   const openItem = (item: AttentionItem) => {
     router.push(`/${item.sourceType}/${item.sourceId}` as never);
   };
 
+  const completeItem = async (item: AttentionItem) => {
+    try {
+      if (item.sourceType === 'deadline') {
+        await new DeadlineRepository(db).setCompleted(item.sourceId, true);
+      } else {
+        const repository = new HabitRepository(db);
+        const habit = await repository.getById(item.sourceId);
+        if (!habit) throw new Error('Habit not found');
+        await repository.setProgress(habit, toLocalDateKey(new Date()), habit.targetValue);
+      }
+      completionFeedback();
+      setItems((current) => current.filter((candidate) => candidate.id !== item.id));
+      refresh();
+      void reconcileNotifications(db).catch(() => undefined);
+    } catch {
+      setError('The item could not be completed.');
+    }
+  };
+
   return (
-    <Screen>
-      <View className="flex-row items-center justify-between gap-4 py-1">
-        <View className="flex-1 gap-1">
-          <View className="flex-row items-center gap-2">
-            <View className="h-2 w-2 rounded-full bg-primary" />
-            <Text className="text-xs font-extrabold uppercase tracking-[1.8px] text-primary">Your focus</Text>
-          </View>
-          <Text className="text-[32px] font-extrabold leading-10 tracking-[-1px] text-foreground">
-            Needs attention
-          </Text>
-          <Text className="text-sm text-muted-foreground">
-            {items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'} asking for your focus` : 'A calm view of what matters now'}
-          </Text>
-        </View>
-        <Button onPress={() => router.push('/deadline/new')}>+ Deadline</Button>
+    <Screen compact>
+      <View className="flex-row items-center justify-end">
+        <AddDeadlineButton />
       </View>
-      <SectionTitle>Now</SectionTitle>
-      {loading ? <LoadingState /> : error ? (
+      {loading ? (
+        <LoadingState />
+      ) : error ? (
         <ErrorState message={error} retry={() => setRequest((value) => value + 1)} />
       ) : items.length === 0 ? (
-        <EmptyState
-          title="You’re clear"
-          message="Nothing needs your attention right now."
-          action={<Button onPress={() => router.push('/deadline/new')}>Add a deadline</Button>}
-        />
-      ) : (
-        <View className="gap-3">
-          {items.map((item) => <AttentionRow key={item.id} item={item} onPress={() => openItem(item)} />)}
+        <View className="mt-10 gap-1 px-1">
+          <Text className="text-[26px] font-semibold tracking-tight text-[#F7F1DF]">
+            You’re clear
+          </Text>
+          <Text className="max-w-xs text-sm leading-5 text-[#F7F1DF]/80">
+            Nothing needs your attention right now.
+          </Text>
         </View>
+      ) : (
+        <GroupSurface>
+          {items.map((item) => (
+            <Animated.View
+              key={item.id}
+              layout={LinearTransition.duration(220)}
+              exiting={FadeOut.duration(220)}
+              className="border-b border-white/25 last:border-b-0 dark:border-white/10"
+            >
+              <AttentionRow
+                item={item}
+                onPress={() => openItem(item)}
+                onComplete={() => void completeItem(item)}
+              />
+            </Animated.View>
+          ))}
+        </GroupSurface>
       )}
-      {!loading && !error && completedDeadlines.length > 0 ? (
-        <>
-          <SectionTitle>Recently completed</SectionTitle>
-          <Card className="overflow-hidden rounded-3xl border-border bg-card p-0 shadow-sm">
-            {completedDeadlines.map((deadline, index) => (
-              <Pressable
-                key={deadline.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${deadline.title}. Completed`}
-                onPress={() => router.push(`/deadline/${deadline.id}` as never)}
-                className={`min-h-14 flex-row items-center gap-3 px-4 active:bg-muted ${
-                  index > 0 ? 'border-t border-border' : ''
-                }`}
-              >
-                <View className="h-8 w-8 items-center justify-center rounded-full bg-urgency-green/10">
-                  <Text className="text-base font-extrabold text-urgency-green">✓</Text>
-                </View>
-                <Text className="flex-1 text-base text-muted-foreground line-through">{deadline.title}</Text>
-                <Text className="text-2xl text-muted-foreground">›</Text>
-              </Pressable>
-            ))}
-          </Card>
-        </>
-      ) : null}
     </Screen>
   );
 }

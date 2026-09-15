@@ -14,4 +14,12 @@ config.server.enhanceMiddleware = (middleware) => (request, response, next) => {
 module.exports = withUniwindConfig(config, {
   cssEntryFile: './global.css',
   dtsFile: './uniwind-types.d.ts',
+  extraThemes: [
+    'green-light',
+    'green-dark',
+    'yellow-light',
+    'yellow-dark',
+    'red-light',
+    'red-dark',
+  ],
 });

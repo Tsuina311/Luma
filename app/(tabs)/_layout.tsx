@@ -1,77 +1,22 @@
-import { SymbolView } from 'expo-symbols';
-import { Tabs } from 'expo-router';
-import { useTheme } from '@/src/ui/theme';
+import { Stack } from 'expo-router';
 
-export default function TabLayout() {
-  const theme = useTheme();
+export default function MainLayout() {
   return (
-    <Tabs
+    <Stack
       screenOptions={{
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.textMuted,
         headerShown: false,
-        tabBarStyle: {
-          height: 72,
-          paddingTop: 8,
-          paddingBottom: 8,
-          backgroundColor: theme.surface,
-          borderTopColor: theme.border,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        sceneStyle: { backgroundColor: theme.background },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Attention',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'lightbulb.fill', android: 'lightbulb', web: 'lightbulb' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="habits"
-        options={{
-          title: 'Habits',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'repeat', android: 'repeat', web: 'repeat' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="progress"
-        options={{
-          title: 'Progress',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+        headerTransparent: true,
+        headerTintColor: '#F7F1DF',
+        headerShadowVisible: false,
+        headerTitleStyle: { fontSize: 17, fontWeight: '600', color: '#F7F1DF' },
+        contentStyle: { backgroundColor: 'transparent' },
+      }}
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="habits" options={{ headerShown: true, title: 'Habits' }} />
+      <Stack.Screen name="progress" options={{ headerShown: true, title: 'Progress' }} />
+      <Stack.Screen name="bin" options={{ headerShown: true, title: 'Bin' }} />
+    </Stack>
   );
 }
