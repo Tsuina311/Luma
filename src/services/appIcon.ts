@@ -1,5 +1,4 @@
 import { Platform } from 'react-native';
-import { getAppIcon, setAppIcon } from 'expo-runtime-app-icon';
 import type { VisualMode } from '@/src/ui/theme';
 
 /** Alternate icons registered in app.json; green is the default bundle icon. */
@@ -16,6 +15,9 @@ export async function syncAppIcon(visualMode: VisualMode): Promise<void> {
   const target = ALTERNATE_ICONS.has(visualMode) ? visualMode : null;
 
   try {
+    // Dynamic import so a missing native module cannot crash app startup.
+    const { getAppIcon, setAppIcon } = await import('expo-runtime-app-icon');
+    if (typeof getAppIcon !== 'function' || typeof setAppIcon !== 'function') return;
     if (getAppIcon() === target) return;
     await setAppIcon(target);
   } catch {

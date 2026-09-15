@@ -18,10 +18,14 @@ export function GluestackUIProvider({
 }) {
   useEffect(() => {
     if (!manageTheme) return;
-    if (mode === 'system') {
-      Uniwind.setTheme('system');
-    } else {
-      Uniwind.setTheme(mode);
+    try {
+      if (mode === 'system') {
+        Uniwind.setTheme('system');
+      } else {
+        Uniwind.setTheme(mode);
+      }
+    } catch (error) {
+      console.warn('Uniwind.setTheme failed', error);
     }
   }, [manageTheme, mode]);
 

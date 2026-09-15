@@ -16,6 +16,7 @@ import { SafeAreaListener } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Uniwind } from 'uniwind';
 import { VisualModeProvider } from '@/src/ui/VisualModeProvider';
+import { ensureAppearanceSetColorScheme } from '@/src/ui/ensureAppearanceSetColorScheme';
 import { useSystemAppearance } from '@/src/ui/useSystemAppearance';
 import { BloomBackground } from '@/src/ui/BloomBackground';
 import { resetDevelopmentData } from '@/src/services/developmentSeed';
@@ -23,13 +24,18 @@ import { resetDevelopmentData } from '@/src/services/developmentSeed';
 
 export { ErrorBoundary } from 'expo-router';
 
+ensureAppearanceSetColorScheme();
 configureForegroundNotifications();
 
 export default function RootLayout() {
   return (
     <SafeAreaListener
       onChange={({ insets }) => {
-        Uniwind.updateInsets(insets);
+        try {
+          Uniwind.updateInsets(insets);
+        } catch {
+          // Insets are best-effort for Uniwind spacing utilities.
+        }
       }}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
