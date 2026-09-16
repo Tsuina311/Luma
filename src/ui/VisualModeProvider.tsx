@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Uniwind } from 'uniwind';
 import { SettingsRepository, type VisualModePreference } from '@/src/db/repositories/settingsRepository';
 import { visualModeFromUrgencies } from '@/src/domain/attention/visualMode';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
-import { syncAppIcon } from '@/src/services/appIcon';
+import { flushAppIcon, syncAppIcon } from '@/src/services/appIcon';
 import { loadAttentionOverview } from '@/src/services/attentionService';
 import type { VisualMode } from '@/src/ui/theme';
 import { useSystemAppearance } from '@/src/ui/useSystemAppearance';
@@ -22,12 +22,15 @@ const VisualModeContext = createContext<VisualModeContextValue>({
   setVisualModePreference: () => undefined,
 });
 
+const AUTO_MODE_POLL_MS = 15_000;
+
 export function VisualModeProvider({ children }: PropsWithChildren) {
   const db = useSQLiteContext();
   const colorScheme = useSystemAppearance();
   const { revision } = useDataRefresh();
   const [preference, setPreference] = useState<VisualModePreference | null>(null);
   const [autoMode, setAutoMode] = useState<VisualMode>('green');
+  const visualModeRef = useRef<VisualMode>('green');
 
   const refreshAutoMode = useCallback(async () => {
     try {
@@ -56,20 +59,15 @@ export function VisualModeProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (preference !== 'auto') return;
-    const onAppState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refreshAutoMode();
-    });
     const interval = setInterval(() => {
       void refreshAutoMode();
-    }, 60_000);
-    return () => {
-      onAppState.remove();
-      clearInterval(interval);
-    };
+    }, AUTO_MODE_POLL_MS);
+    return () => clearInterval(interval);
   }, [preference, refreshAutoMode]);
 
   const resolvedPreference = preference ?? 'auto';
   const visualMode: VisualMode = resolvedPreference === 'auto' ? autoMode : resolvedPreference;
+  visualModeRef.current = visualMode;
 
   useEffect(() => {
     // Defer past first paint so a theme failure cannot block initial mount.
@@ -86,6 +84,20 @@ export function VisualModeProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     void syncAppIcon(visualMode);
   }, [visualMode]);
+
+  useEffect(() => {
+    const onAppState = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        // Android activity-alias flips often only show on the home screen after leaving foreground.
+        void syncAppIcon(visualModeRef.current).then(() => flushAppIcon());
+      }
+      if (state === 'active') {
+        if (preference === 'auto' || preference === null) void refreshAutoMode();
+        void syncAppIcon(visualModeRef.current);
+      }
+    });
+    return () => onAppState.remove();
+  }, [preference, refreshAutoMode]);
 
   const setVisualModePreference = useCallback((mode: VisualModePreference) => {
     setPreference(mode);
