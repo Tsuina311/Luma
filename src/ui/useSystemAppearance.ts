@@ -4,7 +4,8 @@ import { Platform, useColorScheme } from 'react-native';
 export type SystemAppearance = 'light' | 'dark';
 
 function getWebAppearance(): SystemAppearance {
-  if (typeof window === 'undefined') return 'light';
+  if (Platform.OS !== 'web') return 'light';
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light';
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
@@ -14,6 +15,7 @@ export function useSystemAppearance(): SystemAppearance {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (typeof window.matchMedia !== 'function') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const update = () => setWebAppearance(media.matches ? 'dark' : 'light');
     update();
