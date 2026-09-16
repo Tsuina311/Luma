@@ -75,6 +75,12 @@
         "projectId": "58c09b8f-1967-41b3-b139-0711c2009f61"
       }
     },
-    "owner": "tsuina"
+    "owner": "tsuina",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/58c09b8f-1967-41b3-b139-0711c2009f61"
+    }
   }
 }

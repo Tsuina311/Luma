@@ -26,6 +26,18 @@ npx eas-cli build --platform android --profile preview
 
 When the build finishes, open the Expo build page on your phone and tap **Install**, or download the `.apk`.
 
+### OTA updates (JS / UI only)
+
+After a preview/production build that includes `expo-updates`, ship JS and asset changes without a new APK:
+
+```bash
+npx eas-cli update --channel preview --message "describe the change" --environment preview
+```
+
+Force-close and reopen the app (sometimes twice) to download and apply. Native changes (icons, plugins, permissions, SDK bumps) still need a new EAS build.
+
+Channels: `preview` ↔ preview APK, `production` ↔ production builds. Runtime version follows `app.json` `version` (`1.0.0`).
+
 ### iOS device
 
 Requires an Apple Developer account and a registered device for internal distribution:

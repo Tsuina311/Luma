@@ -26,6 +26,7 @@
     "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
+    "expo-updates": "~57.0.22",
     "expo-web-browser": "~57.0.3",
     "react": "19.2.3",
     "react-aria": "^3.52.1",
@@ -66,7 +67,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint app src components __tests__",
     "test": "jest --runInBand",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "update:preview": "eas-cli update --channel preview --environment preview",
+    "update:production": "eas-cli update --channel production --environment production"
   },
   "jest": {
     "preset": "jest-expo",
