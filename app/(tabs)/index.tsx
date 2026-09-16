@@ -59,7 +59,7 @@ function AddDeadlineButton() {
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      accessibilityLabel="Add deadline"
+      accessibilityLabel="Add deadline or habit"
       onPress={onPress}
       className="h-[50px] w-[50px] items-center justify-center"
       style={style}

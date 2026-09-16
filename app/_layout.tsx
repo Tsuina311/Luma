@@ -124,7 +124,7 @@ function ThemedApp() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="deadline/new" options={{ title: 'New deadline', presentation: 'modal' }} />
+            <Stack.Screen name="deadline/new" options={{ title: 'New', presentation: 'modal' }} />
             <Stack.Screen name="deadline/[id]" options={{ title: 'Deadline' }} />
             <Stack.Screen name="habit/new" options={{ title: 'New habit', presentation: 'modal' }} />
             <Stack.Screen name="habit/[id]" options={{ title: 'Habit' }} />
