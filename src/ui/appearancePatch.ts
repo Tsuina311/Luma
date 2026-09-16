@@ -5,11 +5,28 @@ import { Appearance } from 'react-native';
  * runtimes that native call throws (or is missing), which surfaces as
  * "undefined is not a function" and kills launch via Expo Router's boundary.
  *
- * Import this module before `uniwind` so the patch is in place first.
- * We intentionally never call through to native setColorScheme.
+ * This module must load before Uniwind (see index.js). We intentionally never
+ * call through to native setColorScheme.
  */
+const noop = (_scheme?: string | null) => undefined;
+
 const appearance = Appearance as typeof Appearance & {
   setColorScheme?: (scheme: string | null | undefined) => void;
 };
 
-appearance.setColorScheme = () => undefined;
+try {
+  appearance.setColorScheme = noop;
+} catch {
+  // Assignment can fail if the property is non-writable.
+}
+
+try {
+  Object.defineProperty(Appearance, 'setColorScheme', {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: noop,
+  });
+} catch {
+  // Last resort already attempted via assignment above.
+}

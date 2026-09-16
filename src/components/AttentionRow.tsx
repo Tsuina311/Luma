@@ -67,11 +67,11 @@ function CompleteButton({ onPress }: { onPress: () => void }) {
   const blink = useSharedValue(0);
 
   useEffect(() => {
-    shimmer.set(withRepeat(
+    shimmer.value = withRepeat(
       withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
       -1,
       true,
-    ));
+    );
   }, [shimmer]);
 
   const glowStyle = useAnimatedStyle(() => {
@@ -121,12 +121,12 @@ function CompleteButton({ onPress }: { onPress: () => void }) {
           accessibilityRole="button"
           accessibilityLabel="Complete item"
           onPress={() => {
-            blink.set(withSequence(
+            blink.value = withSequence(
               withTiming(1, { duration: 130 }),
               withTiming(0, { duration: 180 }, (finished) => {
                 if (finished) runOnJS(onPress)();
               }),
-            ));
+            );
           }}
           className="h-full w-full items-center justify-center"
         >
