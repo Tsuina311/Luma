@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { StyleSheet, useWindowDimensions } from 'react-native';
-import { Asset } from 'expo-asset';
 import { Image } from 'expo-image';
 import Animated, {
   Easing,
@@ -39,10 +38,6 @@ export function BloomBackground() {
   const greenOpacity = useSharedValue(visualMode === 'green' ? 1 : 0);
   const yellowOpacity = useSharedValue(visualMode === 'yellow' ? 1 : 0);
   const redOpacity = useSharedValue(visualMode === 'red' ? 1 : 0);
-
-  useEffect(() => {
-    void Asset.loadAsync([blooms.green, blooms.yellow, blooms.red]);
-  }, []);
 
   useEffect(() => {
     modeProgress.value = withTiming(modeIndex[visualMode], timing);

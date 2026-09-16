@@ -6,40 +6,49 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+// Must run before uniwind so Appearance.setColorScheme is safe on Android.
+import '@/src/ui/appearancePatch';
+
 import { migrateDatabase } from '@/src/db/migrations';
 import { DataRefreshProvider } from '@/src/hooks/useDataRefresh';
 import { configureForegroundNotifications, reconcileNotifications } from '@/src/services/notifications';
 import { LoadingState } from '@/src/components/ui';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
-import { SafeAreaListener } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Uniwind } from 'uniwind';
 import { VisualModeProvider } from '@/src/ui/VisualModeProvider';
-import { ensureAppearanceSetColorScheme } from '@/src/ui/ensureAppearanceSetColorScheme';
 import { useSystemAppearance } from '@/src/ui/useSystemAppearance';
 import { BloomBackground } from '@/src/ui/BloomBackground';
 import { resetDevelopmentData } from '@/src/services/developmentSeed';
 
+export { ErrorBoundary } from '@/src/ui/ErrorBoundary';
 
-export { ErrorBoundary } from 'expo-router';
+try {
+  configureForegroundNotifications();
+} catch (error) {
+  console.warn('configureForegroundNotifications failed', error);
+}
 
-ensureAppearanceSetColorScheme();
-configureForegroundNotifications();
+function UniwindInsetsSync() {
+  const insets = useSafeAreaInsets();
+  useEffect(() => {
+    try {
+      Uniwind.updateInsets(insets);
+    } catch {
+      // Insets are best-effort for Uniwind spacing utilities.
+    }
+  }, [insets]);
+  return null;
+}
 
 export default function RootLayout() {
   return (
-    <SafeAreaListener
-      onChange={({ insets }) => {
-        try {
-          Uniwind.updateInsets(insets);
-        } catch {
-          // Insets are best-effort for Uniwind spacing utilities.
-        }
-      }}
-    >
+    <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GluestackUIProvider mode="system" manageTheme={false}>
+          <UniwindInsetsSync />
           <Suspense fallback={<LoadingState />}>
             <SQLiteProvider databaseName="luma.db" onInit={initializeDatabase} useSuspense>
               <DataRefreshProvider>
@@ -51,7 +60,7 @@ export default function RootLayout() {
           </Suspense>
         </GluestackUIProvider>
       </GestureHandlerRootView>
-    </SafeAreaListener>
+    </SafeAreaProvider>
   );
 }
 

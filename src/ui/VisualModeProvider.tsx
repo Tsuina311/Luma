@@ -72,11 +72,15 @@ export function VisualModeProvider({ children }: PropsWithChildren) {
   const visualMode: VisualMode = resolvedPreference === 'auto' ? autoMode : resolvedPreference;
 
   useEffect(() => {
-    try {
-      Uniwind.setTheme(`${visualMode}-${colorScheme}`);
-    } catch (error) {
-      console.warn('Uniwind.setTheme failed', error);
-    }
+    // Defer past first paint so a theme failure cannot block initial mount.
+    const id = requestAnimationFrame(() => {
+      try {
+        Uniwind.setTheme(`${visualMode}-${colorScheme}`);
+      } catch (error) {
+        console.warn('Uniwind.setTheme failed', error);
+      }
+    });
+    return () => cancelAnimationFrame(id);
   }, [colorScheme, visualMode]);
 
   useEffect(() => {

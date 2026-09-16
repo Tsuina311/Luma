@@ -95,6 +95,7 @@ export async function reconcileNotifications(db: SQLiteDatabase): Promise<number
 
 export function configureForegroundNotifications(): void {
   if (Platform.OS === 'web') return;
+  if (typeof Notifications.setNotificationHandler !== 'function') return;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,

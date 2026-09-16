@@ -572,11 +572,11 @@ export function TactilePressable({
       {...props}
       disabled={disabled}
       onPressIn={(event) => {
-        scale.set(withTiming(0.985, timing));
+        scale.value = withTiming(0.985, timing);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
-        scale.set(withTiming(1, timing));
+        scale.value = withTiming(1, timing);
         onPressOut?.(event);
       }}
       className={`${disabled ? "opacity-40" : ""} ${props.className ?? ""}`}
