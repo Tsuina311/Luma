@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Uniwind } from 'uniwind';
 import { SettingsRepository, type VisualModePreference } from '@/src/db/repositories/settingsRepository';
 import { visualModeFromUrgencies } from '@/src/domain/attention/visualMode';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
-import { flushAppIcon, syncAppIcon } from '@/src/services/appIcon';
+import { applyQueuedAppIcon, syncAppIcon } from '@/src/services/appIcon';
 import { loadAttentionOverview } from '@/src/services/attentionService';
 import type { VisualMode } from '@/src/ui/theme';
 import { useSystemAppearance } from '@/src/ui/useSystemAppearance';
@@ -24,21 +24,27 @@ const VisualModeContext = createContext<VisualModeContextValue>({
 
 const AUTO_MODE_POLL_MS = 15_000;
 
+async function resolveAutoVisualMode(db: Parameters<typeof loadAttentionOverview>[0]): Promise<VisualMode> {
+  const { items } = await loadAttentionOverview(db);
+  return visualModeFromUrgencies(items.map((item) => item.urgency));
+}
+
 export function VisualModeProvider({ children }: PropsWithChildren) {
   const db = useSQLiteContext();
   const colorScheme = useSystemAppearance();
   const { revision } = useDataRefresh();
   const [preference, setPreference] = useState<VisualModePreference | null>(null);
   const [autoMode, setAutoMode] = useState<VisualMode>('green');
+  const preferenceRef = useRef<VisualModePreference | null>(null);
   const visualModeRef = useRef<VisualMode>('green');
 
   const refreshAutoMode = useCallback(async () => {
     try {
-      const { items } = await loadAttentionOverview(db);
-      const next = visualModeFromUrgencies(items.map((item) => item.urgency));
+      const next = await resolveAutoVisualMode(db);
       setAutoMode((current) => (current === next ? current : next));
+      return next;
     } catch {
-      // Keep the last known auto mode if attention cannot be loaded.
+      return visualModeRef.current;
     }
   }, [db]);
 
@@ -51,6 +57,10 @@ export function VisualModeProvider({ children }: PropsWithChildren) {
       active = false;
     };
   }, [db]);
+
+  useEffect(() => {
+    preferenceRef.current = preference;
+  }, [preference]);
 
   useEffect(() => {
     if (preference !== 'auto') return;
@@ -82,22 +92,44 @@ export function VisualModeProvider({ children }: PropsWithChildren) {
   }, [colorScheme, visualMode]);
 
   useEffect(() => {
+    // Queue (and on iOS apply). Never force an Android alias flip while foregrounded.
     void syncAppIcon(visualMode);
   }, [visualMode]);
 
   useEffect(() => {
     const onAppState = AppState.addEventListener('change', (state) => {
-      if (state === 'background' || state === 'inactive') {
-        // Android activity-alias flips often only show on the home screen after leaving foreground.
-        void syncAppIcon(visualModeRef.current).then(() => flushAppIcon());
-      }
       if (state === 'active') {
-        if (preference === 'auto' || preference === null) void refreshAutoMode();
-        void syncAppIcon(visualModeRef.current);
+        // Update in-app theme/urgency only — do not touch Android launcher components here.
+        if (preferenceRef.current === 'auto' || preferenceRef.current === null) {
+          void refreshAutoMode().then((mode) => {
+            const pref = preferenceRef.current ?? 'auto';
+            void syncAppIcon(pref === 'auto' ? mode : pref);
+          });
+        }
+        return;
+      }
+
+      if (state === 'background') {
+        void (async () => {
+          const pref = preferenceRef.current ?? 'auto';
+          let mode: VisualMode = visualModeRef.current;
+          if (pref === 'auto') {
+            try {
+              mode = await resolveAutoVisualMode(db);
+              setAutoMode((current) => (current === mode ? current : mode));
+            } catch {
+              mode = visualModeRef.current;
+            }
+          } else {
+            mode = pref;
+          }
+          await syncAppIcon(mode);
+          if (Platform.OS === 'android') await applyQueuedAppIcon();
+        })();
       }
     });
     return () => onAppState.remove();
-  }, [preference, refreshAutoMode]);
+  }, [db, refreshAutoMode]);
 
   const setVisualModePreference = useCallback((mode: VisualModePreference) => {
     setPreference(mode);
