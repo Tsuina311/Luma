@@ -4,11 +4,13 @@ import {
   GroupSurface,
   LoadingState,
   Screen,
+  TactilePressable,
 } from '@/src/components/ui';
 import { DeadlineRepository } from '@/src/db/repositories/deadlineRepository';
 import { HabitRepository } from '@/src/db/repositories/habitRepository';
 import type { AttentionItem } from '@/src/domain/shared';
 import { useDataRefresh } from '@/src/hooks/useDataRefresh';
+import { getAppReleaseInfo } from '@/src/services/appRelease';
 import { loadAttentionOverview } from '@/src/services/attentionService';
 import { reconcileNotifications } from '@/src/services/notifications';
 import { completionFeedback, selectionFeedback } from '@/src/ui/feedback';
@@ -16,7 +18,7 @@ import { toLocalDateKey } from '@/src/utils/dates';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -127,9 +129,26 @@ export default function AttentionScreen() {
     }
   };
 
+  const releaseSummary = useMemo(() => getAppReleaseInfo().summary, []);
+
   return (
     <Screen compact>
-      <View className="flex-row items-center justify-end">
+      <View className="flex-row items-center justify-between">
+        <TactilePressable
+          accessibilityRole="button"
+          accessibilityLabel="Open settings"
+          onPress={() => {
+            selectionFeedback();
+            router.push('/settings');
+          }}
+          className="h-[50px] w-[50px] items-center justify-center"
+        >
+          <Image
+            source={require('@/assets/images/cog.png')}
+            style={{ width: 50, height: 50 }}
+            contentFit="contain"
+          />
+        </TactilePressable>
         <AddDeadlineButton />
       </View>
       {loading ? (
@@ -163,6 +182,12 @@ export default function AttentionScreen() {
           ))}
         </GroupSurface>
       )}
+      <Text
+        accessibilityLabel={`App version ${releaseSummary}`}
+        className="mt-auto pt-4 text-center text-[11px] text-[#F7F1DF]/45"
+      >
+        {releaseSummary}
+      </Text>
     </Screen>
   );
 }

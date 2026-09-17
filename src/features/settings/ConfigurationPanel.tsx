@@ -21,6 +21,10 @@ import { useDataRefresh } from '@/src/hooks/useDataRefresh';
 import { useVisualMode } from '@/src/ui/VisualModeProvider';
 import { seedDevelopmentData } from '@/src/services/developmentSeed';
 import {
+  checkAndApplyUpdate,
+  getAppReleaseInfo,
+} from '@/src/services/appRelease';
+import {
   getNotificationPermissionState,
   type NotificationPermissionState,
   reconcileNotifications,
@@ -40,6 +44,8 @@ export function ConfigurationPanel({ active = true }: { active?: boolean }) {
   const [data, setData] = useState<SettingsData>();
   const [error, setError] = useState<string>();
   const [request, setRequest] = useState(0);
+  const [release] = useState(() => getAppReleaseInfo());
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const load = useCallback(() => {
     let activeLoad = true;
@@ -109,6 +115,23 @@ export function ConfigurationPanel({ active = true }: { active?: boolean }) {
     }
   };
 
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    const outcome = await checkAndApplyUpdate();
+    setCheckingUpdate(false);
+    if (outcome.status === 'disabled') {
+      Alert.alert('Updates unavailable', 'OTA checks only run in release builds with EAS Update enabled.');
+      return;
+    }
+    if (outcome.status === 'upToDate') {
+      Alert.alert('You’re up to date', `Running ${release.summary}`);
+      return;
+    }
+    if (outcome.status === 'error') {
+      Alert.alert('Update check failed', outcome.message);
+    }
+  };
+
   if (!data && !error) return <LoadingState />;
   if (error) {
     return (
@@ -166,6 +189,34 @@ export function ConfigurationPanel({ active = true }: { active?: boolean }) {
         </View>
         <View className="h-px bg-border" />
         <SettingRow label="Default urgency profile" value={data.profileName} />
+      </GroupSurface>
+
+      <SectionHeader>Version</SectionHeader>
+      <GroupSurface className="gap-1 py-3">
+        <SettingRow label="App" value={release.appVersion} />
+        <SettingRow label="Channel" value={release.channel} />
+        <SettingRow
+          label="Bundle"
+          value={
+            release.source === 'ota'
+              ? `OTA ${release.updateShortId ?? '—'}`
+              : release.source === 'dev'
+                ? 'Dev'
+                : 'Embedded'
+          }
+        />
+        {release.publishedAt ? <SettingRow label="Published" value={release.publishedAt} /> : null}
+        {release.message ? <SettingRow label="Update" value={release.message} /> : null}
+        <View className="self-start pt-2">
+          <Button
+            size="compact"
+            variant="secondary"
+            disabled={checkingUpdate}
+            onPress={() => void handleCheckUpdate()}
+          >
+            {checkingUpdate ? 'Checking…' : 'Check for update'}
+          </Button>
+        </View>
       </GroupSurface>
 
       {__DEV__ ? (
