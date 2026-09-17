@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import type { Manifest } from 'expo-updates';
+import { APP_VERSION } from '@/src/version';
 
 export type AppReleaseInfo = {
   appVersion: string;
@@ -36,10 +37,9 @@ function readUpdateMessage(manifest: Partial<Manifest>): string | null {
 }
 
 export function getAppReleaseInfo(): AppReleaseInfo {
-  const appVersion =
-    Constants.expoConfig?.version ??
-    Constants.nativeAppVersion ??
-    'unknown';
+  // Prefer the JS bundle constant — Constants.expoConfig.version often stays on the
+  // native-embedded value even after an OTA is applied.
+  const appVersion = APP_VERSION || Constants.expoConfig?.version || Constants.nativeAppVersion || 'unknown';
   const runtimeVersion = Updates.runtimeVersion ?? appVersion;
   const channel = Updates.channel ?? (__DEV__ ? 'dev' : 'unknown');
   const updateId = Updates.updateId;

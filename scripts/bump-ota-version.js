@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Bump expo.version (and package.json version) for the next OTA.
+ * Bump the visible app version for the next OTA.
+ * Updates app.json, package.json, and src/version.ts together.
  * runtimeVersion stays pinned in app.json so existing native builds keep receiving updates.
  *
  * Usage:
- *   node scripts/bump-ota-version.mjs           # patch: 1.0.1 → 1.0.2
- *   node scripts/bump-ota-version.mjs minor     # 1.0.2 → 1.1.0
- *   node scripts/bump-ota-version.mjs 1.2.0     # set explicit
+ *   node scripts/bump-ota-version.js           # patch: 1.0.1 → 1.0.2
+ *   node scripts/bump-ota-version.js minor     # 1.0.2 → 1.1.0
+ *   node scripts/bump-ota-version.js 1.2.0     # set explicit
  */
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +15,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const appJsonPath = path.join(root, 'app.json');
 const packageJsonPath = path.join(root, 'package.json');
+const versionTsPath = path.join(root, 'src/version.ts');
 
 const app = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
 const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -51,6 +53,9 @@ if (!app.expo.runtimeVersion) {
   app.expo.runtimeVersion = '1.0.0';
 }
 
+const versionTs = `/** Display version — bumped by \`scripts/bump-ota-version.js\` on every OTA. */\nexport const APP_VERSION = '${next}';\n`;
+
 fs.writeFileSync(appJsonPath, `${JSON.stringify(app, null, 2)}\n`);
 fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`);
+fs.writeFileSync(versionTsPath, versionTs);
 process.stdout.write(`${current} → ${next}\n`);
