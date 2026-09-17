@@ -25,7 +25,7 @@
         "VIBRATE"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#96F450",
+        "backgroundColor": "#A6F067",
         "foregroundImage": "./assets/images/app-icon-green.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -56,11 +56,11 @@
           "icons": {
             "yellow": {
               "image": "./assets/images/app-icon-yellow.png",
-              "backgroundColor": "#FBEA2B"
+              "backgroundColor": "#DAD616"
             },
             "red": {
               "image": "./assets/images/app-icon-red.png",
-              "backgroundColor": "#E2593D"
+              "backgroundColor": "#CF4E33"
             }
           }
         }
