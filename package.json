@@ -1,7 +1,7 @@
 {
   "name": "luma",
   "main": "index.js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "dependencies": {
     "@expo/html-elements": "^0.12.5",
     "@gluestack-ui/core": "^5.0.15",
@@ -68,8 +68,8 @@
     "lint": "eslint app src components __tests__",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "update:preview": "eas-cli update --channel preview --environment preview",
-    "update:production": "eas-cli update --channel production --environment production"
+    "update:preview": "node scripts/bump-ota-version.js && CI=1 eas-cli update --channel preview --environment preview --non-interactive",
+    "update:production": "node scripts/bump-ota-version.js && CI=1 eas-cli update --channel production --environment production --non-interactive"
   },
   "jest": {
     "preset": "jest-expo",

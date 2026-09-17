@@ -28,15 +28,26 @@ When the build finishes, open the Expo build page on your phone and tap **Instal
 
 ### OTA updates (JS / UI only)
 
-After a preview/production build that includes `expo-updates`, ship JS and asset changes without a new APK:
+After a preview/production build that includes `expo-updates`, ship JS and asset changes without a new APK.
+
+**Always bump the app version for each OTA** (so the in-app Version stamp changes). Use:
 
 ```bash
-npx eas-cli update --channel preview --message "describe the change" --environment preview
+npm run update:preview -- --message "describe the change"
 ```
 
-Force-close and reopen the app (sometimes twice) to download and apply. Native changes (icons, plugins, permissions, SDK bumps) still need a new EAS build.
+That runs `scripts/bump-ota-version.js` (patch bump of `app.json` / `package.json` `version`) then publishes. `runtimeVersion` stays pinned at `1.0.0` so existing preview APKs keep receiving updates.
 
-Channels: `preview` ↔ preview APK, `production` ↔ production builds. Runtime version follows `app.json` `version` (`1.0.0`).
+Or manually:
+
+```bash
+node scripts/bump-ota-version.js
+CI=1 npx eas-cli update --channel preview --message "describe the change" --environment preview --non-interactive
+```
+
+Force-close and reopen the app (sometimes twice), or use Settings → Check for update. Native changes (icons, plugins, permissions, SDK bumps) still need a new EAS build — and then bump `runtimeVersion` when the native binary changes.
+
+Channels: `preview` ↔ preview APK, `production` ↔ production builds.
 
 ### iOS device
 

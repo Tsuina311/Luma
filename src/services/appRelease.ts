@@ -51,12 +51,15 @@ export function getAppReleaseInfo(): AppReleaseInfo {
   if (__DEV__ && !Updates.isEnabled) source = 'dev';
   else if (!Updates.isEmbeddedLaunch && updateId) source = 'ota';
 
-  const summary =
+  const summary = `${appVersion}${
     source === 'ota' && updateShortId
-      ? `${appVersion} · OTA ${updateShortId}`
+      ? ` · OTA ${updateShortId}`
       : source === 'dev'
-        ? `${appVersion} · dev`
-        : `${appVersion} · embedded`;
+        ? ' · dev'
+        : source === 'embedded'
+          ? ' · embedded'
+          : ''
+  }`;
 
   return {
     appVersion,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Luma",
     "slug": "luma",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon-green.png",
     "scheme": "luma",
@@ -76,9 +76,7 @@
       }
     },
     "owner": "tsuina",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/58c09b8f-1967-41b3-b139-0711c2009f61"
     }
