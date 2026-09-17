@@ -11,6 +11,14 @@ export const recurrenceSchema = z.discriminatedUnion('type', [
     type: z.literal('weekly'),
     frequency: z.number().int().min(1).max(7),
   }),
+  z.object({
+    type: z.literal('monthly'),
+    frequency: z.number().int().min(1).max(31),
+  }),
+  z.object({
+    type: z.literal('interval'),
+    everyDays: z.number().int().min(1).max(365),
+  }),
 ]);
 
 export type HabitRecurrence = z.infer<typeof recurrenceSchema>;

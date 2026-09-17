@@ -6,7 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { HabitRepository } from '@/src/db/repositories/habitRepository';
-import { habitInputSchema, type Habit, type HabitInput } from '@/src/domain/habits/schemas';
+import {
+  habitInputSchema,
+  type Habit,
+  type HabitInput,
+  type HabitRecurrence,
+} from '@/src/domain/habits/schemas';
 import {
   getNotificationPermissionState,
   reconcileNotifications,
@@ -22,6 +27,16 @@ import {
 import { selectionFeedback } from '@/src/ui/feedback';
 
 const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+type RecurrenceKind = HabitRecurrence['type'];
+
+function defaultRecurrence(type: RecurrenceKind): HabitRecurrence {
+  if (type === 'weekdays') return { type: 'weekdays', days: [1, 2, 3, 4, 5] };
+  if (type === 'weekly') return { type: 'weekly', frequency: 2 };
+  if (type === 'monthly') return { type: 'monthly', frequency: 4 };
+  if (type === 'interval') return { type: 'interval', everyDays: 3 };
+  return { type: 'daily' };
+}
 
 export function HabitForm({
   db,
@@ -42,7 +57,7 @@ export function HabitForm({
     defaultValues: {
       title: initial?.title ?? '',
       notes: initial?.notes ?? '',
-      recurrence: initial?.recurrence ?? { type: 'daily' },
+      recurrence: initial?.recurrence ?? { type: 'weekly', frequency: 2 },
       targetType: initial?.targetType ?? 'boolean',
       targetValue: initial?.targetValue ?? 1,
       unit: initial?.unit ?? '',
@@ -50,7 +65,7 @@ export function HabitForm({
       active: initial?.active ?? true,
     },
   });
-  const recurrence = useWatch({ control, name: 'recurrence' });
+  const recurrence = useWatch({ control, name: 'recurrence' }) ?? defaultRecurrence('weekly');
   const targetType = useWatch({ control, name: 'targetType' });
   const targetValue = useWatch({ control, name: 'targetValue' });
   const reminderTime = useWatch({ control, name: 'reminderTime' });
@@ -95,12 +110,6 @@ export function HabitForm({
     }
   });
 
-  const setRecurrenceType = (type: 'daily' | 'weekdays' | 'weekly') => {
-    if (type === 'daily') setValue('recurrence', { type: 'daily' });
-    if (type === 'weekdays') setValue('recurrence', { type: 'weekdays', days: [1, 2, 3, 4, 5] });
-    if (type === 'weekly') setValue('recurrence', { type: 'weekly', frequency: 3 });
-  };
-
   return (
     <View className="gap-4">
       <Controller
@@ -133,9 +142,11 @@ export function HabitForm({
         options={[
           { value: 'daily', label: 'Daily' },
           { value: 'weekdays', label: 'Days' },
-          { value: 'weekly', label: 'Weekly' },
+          { value: 'weekly', label: 'Per week' },
+          { value: 'monthly', label: 'Per month' },
+          { value: 'interval', label: 'Every N days' },
         ]}
-        onChange={setRecurrenceType}
+        onChange={(type) => setValue('recurrence', defaultRecurrence(type))}
       />
       {recurrence.type === 'weekdays' ? (
         <View className="flex-row justify-between gap-1">
@@ -149,10 +160,11 @@ export function HabitForm({
                 accessibilityState={{ checked: selected }}
                 onPress={() => {
                   selectionFeedback();
-                  setValue('recurrence', {
-                    type: 'weekdays',
-                    days: selected ? recurrence.days.filter((value) => value !== day) : [...recurrence.days, day],
-                  });
+                  const days = selected
+                    ? recurrence.days.filter((value) => value !== day)
+                    : [...recurrence.days, day];
+                  if (days.length === 0) return;
+                  setValue('recurrence', { type: 'weekdays', days });
                 }}
                 className={`h-11 w-11 items-center justify-center rounded-[9px] border ${
                   selected ? 'border-primary bg-accent' : 'border-border bg-card'
@@ -168,10 +180,42 @@ export function HabitForm({
         <Field
           label="Times per week"
           value={String(recurrence.frequency)}
-          onChangeText={(value) => setValue('recurrence', { type: 'weekly', frequency: Number(value) })}
+          onChangeText={(value) => {
+            const frequency = Math.max(1, Math.min(7, Number(value) || 0));
+            setValue('recurrence', { type: 'weekly', frequency });
+          }}
           keyboardType="number-pad"
           error={errors.recurrence?.message}
         />
+      ) : null}
+      {recurrence.type === 'monthly' ? (
+        <Field
+          label="Times per month"
+          value={String(recurrence.frequency)}
+          onChangeText={(value) => {
+            const frequency = Math.max(1, Math.min(31, Number(value) || 0));
+            setValue('recurrence', { type: 'monthly', frequency });
+          }}
+          keyboardType="number-pad"
+          error={errors.recurrence?.message}
+        />
+      ) : null}
+      {recurrence.type === 'interval' ? (
+        <Field
+          label="Every how many days?"
+          value={String(recurrence.everyDays)}
+          onChangeText={(value) => {
+            const everyDays = Math.max(1, Math.min(365, Number(value) || 0));
+            setValue('recurrence', { type: 'interval', everyDays });
+          }}
+          keyboardType="number-pad"
+          error={errors.recurrence?.message}
+        />
+      ) : null}
+      {recurrence.type === 'weekly' ? (
+        <Text className="text-sm leading-5 text-[#F7F1DF]/70">
+          Example: yoga twice a week. If you miss the weekly count, it turns overdue when the next week starts.
+        </Text>
       ) : null}
 
       <SectionHeader>Target</SectionHeader>

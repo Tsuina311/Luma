@@ -1,13 +1,16 @@
 import {
   addDays,
+  addMonths,
   differenceInCalendarDays,
   eachDayOfInterval,
   eachWeekOfInterval,
+  endOfMonth,
   endOfWeek,
   isAfter,
   isBefore,
   isSameDay,
   startOfDay,
+  startOfMonth,
 } from 'date-fns';
 import type { Urgency } from '@/src/domain/shared';
 import { getWeekStart, parseLocalDate, toLocalDateKey, type WeekStart } from '@/src/utils/dates';
@@ -22,10 +25,57 @@ export type HabitStatus = {
   urgency: Urgency;
 };
 
+function completedDatesInRange(logs: HabitLog[], start: Date, end: Date): number {
+  return new Set(
+    logs
+      .filter((log) => log.completed)
+      .filter((log) => {
+        const logged = parseLocalDate(log.date);
+        return !isBefore(logged, start) && !isAfter(logged, end);
+      })
+      .map((log) => log.date),
+  ).size;
+}
+
+function periodQuotaStatus(args: {
+  current: number;
+  target: number;
+  daysLeftInPeriod: number;
+  previousPeriodMissed: boolean;
+  periodLabel: string;
+}): HabitStatus {
+  const { current, target, daysLeftInPeriod, previousPeriodMissed, periodLabel } = args;
+  const complete = current >= target;
+  let urgency: Urgency = 'yellow';
+  if (complete) urgency = 'green';
+  else if (previousPeriodMissed) urgency = 'red';
+  else if (daysLeftInPeriod <= 1) urgency = 'orange';
+
+  return {
+    isScheduled: !complete,
+    completed: complete,
+    current,
+    target,
+    subtitle: previousPeriodMissed && !complete
+      ? `${current} / ${target} ${periodLabel} · overdue`
+      : `${current} / ${target} ${periodLabel}`,
+    urgency,
+  };
+}
+
 export function isHabitScheduledOnDate(habit: Habit, date: Date): boolean {
   if (!habit.active) return false;
-  if (habit.recurrence.type === 'daily' || habit.recurrence.type === 'weekly') return true;
-  return habit.recurrence.days.includes(date.getDay());
+  if (habit.recurrence.type === 'daily' || habit.recurrence.type === 'weekly' || habit.recurrence.type === 'monthly') {
+    return true;
+  }
+  if (habit.recurrence.type === 'weekdays') {
+    return habit.recurrence.days.includes(date.getDay());
+  }
+  const start = startOfDay(new Date(habit.createdAt));
+  const day = startOfDay(date);
+  if (isBefore(day, start)) return false;
+  const diff = differenceInCalendarDays(day, start);
+  return diff % habit.recurrence.everyDays === 0;
 }
 
 export function getHabitStatusForDate(
@@ -41,25 +91,94 @@ export function getHabitStatusForDate(
   if (habit.recurrence.type === 'weekly') {
     const weekStart = getWeekStart(date, weekStartsOn);
     const weekEnd = endOfWeek(date, { weekStartsOn });
-    const completedDays = new Set(
-      logs
-        .filter((log) => log.completed)
-        .filter((log) => {
-          const logged = parseLocalDate(log.date);
-          return !isBefore(logged, weekStart) && !isAfter(logged, weekEnd);
-        })
-        .map((log) => log.date),
-    ).size;
+    const previousWeekStart = addDays(weekStart, -7);
+    const previousWeekEnd = addDays(weekStart, -1);
     const frequency = habit.recurrence.frequency;
-    const complete = completedDays >= frequency;
-    const daysLeft = differenceInCalendarDays(weekEnd, date);
-    return {
-      isScheduled: !complete,
-      completed: complete,
-      current: completedDays,
+    const created = startOfDay(new Date(habit.createdAt));
+    const previousPeriodMissed =
+      !isAfter(created, previousWeekEnd) &&
+      completedDatesInRange(logs, previousWeekStart, previousWeekEnd) < frequency;
+
+    return periodQuotaStatus({
+      current: completedDatesInRange(logs, weekStart, weekEnd),
       target: frequency,
-      subtitle: `${completedDays} / ${frequency} this week`,
-      urgency: complete ? 'green' : daysLeft <= 1 ? 'orange' : 'yellow',
+      daysLeftInPeriod: differenceInCalendarDays(weekEnd, date),
+      previousPeriodMissed,
+      periodLabel: 'this week',
+    });
+  }
+
+  if (habit.recurrence.type === 'monthly') {
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
+    const previousMonthStart = startOfMonth(addMonths(date, -1));
+    const previousMonthEnd = endOfMonth(addMonths(date, -1));
+    const frequency = habit.recurrence.frequency;
+    const created = startOfDay(new Date(habit.createdAt));
+    const previousPeriodMissed =
+      !isAfter(created, previousMonthEnd) &&
+      completedDatesInRange(logs, previousMonthStart, previousMonthEnd) < frequency;
+
+    return periodQuotaStatus({
+      current: completedDatesInRange(logs, monthStart, monthEnd),
+      target: frequency,
+      daysLeftInPeriod: differenceInCalendarDays(monthEnd, date),
+      previousPeriodMissed,
+      periodLabel: 'this month',
+    });
+  }
+
+  if (habit.recurrence.type === 'interval') {
+    const scheduled = isHabitScheduledOnDate(habit, date);
+    const amount = todayLog?.amount ?? 0;
+    const complete = Boolean(todayLog?.completed || amount >= target);
+    if (scheduled) {
+      return {
+        isScheduled: !complete,
+        completed: complete,
+        current: amount,
+        target,
+        subtitle: complete ? 'Done today' : `Due every ${habit.recurrence.everyDays} days`,
+        urgency: complete ? 'green' : 'orange',
+      };
+    }
+
+    // Missed the previous interval day → overdue until the next interval day is completed.
+    const start = startOfDay(new Date(habit.createdAt));
+    const day = startOfDay(date);
+    const diff = differenceInCalendarDays(day, start);
+    const every = habit.recurrence.everyDays;
+    const lastScheduledOffset = Math.floor((diff - 1) / every) * every;
+    if (lastScheduledOffset < 0) {
+      return {
+        isScheduled: false,
+        completed: false,
+        current: 0,
+        target,
+        subtitle: `Every ${every} days`,
+        urgency: 'green',
+      };
+    }
+    const lastScheduled = addDays(start, lastScheduledOffset);
+    const lastKey = toLocalDateKey(lastScheduled);
+    const lastDone = logs.some((log) => log.date === lastKey && log.completed);
+    if (!lastDone) {
+      return {
+        isScheduled: true,
+        completed: false,
+        current: 0,
+        target,
+        subtitle: `Missed ${lastKey} · every ${every} days`,
+        urgency: 'red',
+      };
+    }
+    return {
+      isScheduled: false,
+      completed: true,
+      current: target,
+      target,
+      subtitle: `Every ${every} days`,
+      urgency: 'green',
     };
   }
 
@@ -106,6 +225,11 @@ export function calculateHabitReliability(
   if (habit.recurrence.type === 'weekly') {
     expected = habit.recurrence.frequency;
     completed = Math.min(expected, weekDays.filter((day) => completedDates.has(toLocalDateKey(day))).length);
+  } else if (habit.recurrence.type === 'monthly') {
+    const monthStart = startOfMonth(now);
+    const monthDays = eachDayOfInterval({ start: monthStart, end: now });
+    expected = habit.recurrence.frequency;
+    completed = Math.min(expected, monthDays.filter((day) => completedDates.has(toLocalDateKey(day))).length);
   } else {
     const scheduled = weekDays.filter((day) => isHabitScheduledOnDate(habit, day));
     expected = scheduled.length;

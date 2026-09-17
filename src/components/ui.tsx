@@ -26,8 +26,6 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
-  FadeIn,
-  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -437,36 +435,31 @@ export function SegmentedControl<T extends string>({
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel={accessibilityLabel}
-      className="flex-row self-start rounded-[11px] border border-border bg-secondary/70 p-0.5"
+      className="flex-row flex-wrap gap-1 self-stretch rounded-[11px] border border-border bg-secondary/70 p-0.5"
     >
       {options.map((option) => {
         const selected = option.value === value;
         return (
-          <TactilePressable
+          <Pressable
             key={option.value}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
+            hitSlop={6}
             onPress={() => {
-              if (!selected) {
-                selectionFeedback();
-                onChange(option.value);
-              }
+              if (selected) return;
+              selectionFeedback();
+              onChange(option.value);
             }}
-            className="relative min-h-10 min-w-24 items-center justify-center overflow-hidden rounded-[9px] px-3"
+            className={`min-h-11 min-w-[44%] flex-1 items-center justify-center rounded-[9px] px-3 ${
+              selected ? 'border border-primary/25 bg-accent' : ''
+            }`}
           >
-            {selected ? (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(120)}
-                className="absolute inset-0 rounded-[9px] border border-primary/25 bg-accent"
-              />
-            ) : null}
             <Text
-              className={`z-10 text-sm ${selected ? "font-semibold text-accent-foreground" : "font-medium text-muted-foreground"}`}
+              className={`text-sm ${selected ? 'font-semibold text-accent-foreground' : 'font-medium text-muted-foreground'}`}
             >
               {option.label}
             </Text>
-          </TactilePressable>
+          </Pressable>
         );
       })}
     </View>

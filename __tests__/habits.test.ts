@@ -61,12 +61,55 @@ describe('habit obligations', () => {
       recurrence: { type: 'weekly', frequency: 3 },
       targetType: 'boolean',
       targetValue: 1,
+      createdAt: monday.toISOString(),
     });
     const logs = [log(monday), log(addDays(monday, 1))];
     const status = getHabitStatusForDate(weekly, logs, addDays(monday, 2), 1);
     expect(status.completed).toBe(false);
     expect(status.subtitle).toBe('2 / 3 this week');
+    expect(status.urgency).not.toBe('red');
     expect(getHabitStatusForDate(weekly, [...logs, log(addDays(monday, 2))], addDays(monday, 2), 1).completed).toBe(true);
+  });
+
+  it('marks a weekly habit overdue when the next week starts after a miss', () => {
+    const weekly = habit({
+      recurrence: { type: 'weekly', frequency: 2 },
+      targetType: 'boolean',
+      targetValue: 1,
+      createdAt: addDays(monday, -14).toISOString(),
+    });
+    // Previous week (Mon-Sun before this monday): only one completion
+    const logs = [log(addDays(monday, -7))];
+    const status = getHabitStatusForDate(weekly, logs, monday, 1);
+    expect(status.completed).toBe(false);
+    expect(status.urgency).toBe('red');
+    expect(status.subtitle).toContain('overdue');
+  });
+
+  it('supports times-per-month quotas', () => {
+    const monthly = habit({
+      recurrence: { type: 'monthly', frequency: 2 },
+      targetType: 'boolean',
+      targetValue: 1,
+      createdAt: new Date(2026, 7, 1).toISOString(),
+    });
+    const status = getHabitStatusForDate(monthly, [log(monday)], monday, 1);
+    expect(status.subtitle).toContain('this month');
+    expect(status.current).toBe(1);
+    expect(status.target).toBe(2);
+  });
+
+  it('schedules interval habits every N days from creation', () => {
+    const created = addDays(monday, -6);
+    const interval = habit({
+      recurrence: { type: 'interval', everyDays: 3 },
+      targetType: 'boolean',
+      targetValue: 1,
+      createdAt: created.toISOString(),
+    });
+    expect(isHabitScheduledOnDate(interval, created)).toBe(true);
+    expect(isHabitScheduledOnDate(interval, addDays(created, 3))).toBe(true);
+    expect(isHabitScheduledOnDate(interval, addDays(created, 1))).toBe(false);
   });
 });
 
